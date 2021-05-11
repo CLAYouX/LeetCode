@@ -1,4 +1,4 @@
-LeetCode刷题.md
+LeetCode刷题
 
  [TOC]
 ## 二叉树的中序遍历
@@ -7,8 +7,8 @@ LeetCode刷题.md
 - 如果x有左孩子，则找到x左子树上最右的节点，记为predecessor。根据predecessor的右孩子是否为空，采用下列操作：
     + 如果predecessor的右孩子为空，则将predecessor的右孩子指向x，然后再访问x的左子树，即```x=x.left```
     + 如果predecessor的右孩子不为空，则此时其右孩子指向x，说明我们已经遍历完x的左子树，我们将predecessor的右孩子置空，将x的值加入
-到答案数组，然后访问x的右子树，即```x=x.right```
-<img src="https://media.giphy.com/media/FvT0B3e71HR9Cp4IAm/giphy.gif" width="1000" height="500"   >
+    到答案数组，然后访问x的右子树，即```x=x.right```
+    <img src="https://media.giphy.com/media/FvT0B3e71HR9Cp4IAm/giphy.gif" width="1000" height="500"   >
 
 ```c++
 class Solution {
@@ -450,7 +450,7 @@ $$
 - 如果 $p$ 的第 $j$ 个字符是 `*`，那么就表示我们可以对 $p$ 的第 $j-1$ 个字符匹配任意自然数次。这种**字母+星号**的组合在匹配的过程中，本质上只会有两种情况：
     + 匹配 $s$ 末尾的一个字符，将该字符扔掉，而该组合还可以继续匹配；
     + 不匹配字符，将该组合扔掉，不再进行匹配。
-根据这一本质，可以写出状态转移方程：
+    根据这一本质，可以写出状态转移方程：
 $$
 f[i][j] = \begin{cases} f[i-1][j] or f[i][j-2], & s[i] == p[j-1] \\ f[i][j-2], & s[i] \neq p[j-2] \end{cases}
 $$

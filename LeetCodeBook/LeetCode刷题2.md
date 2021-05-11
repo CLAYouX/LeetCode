@@ -34,7 +34,7 @@ public:
 };
 ```
 ### 快速幂-迭代
-还是以 $x^{77}$ 作为例子：
+还是以 $ x^{77} $ 作为例子：
 $$
 x \rightarrow x^2 \rightarrow x^4 \rightarrow +x^9 \rightarrow +x^{19} \rightarrow x^{38} \rightarrow +x^{77}
 $$
@@ -2906,3 +2906,440 @@ public:
 ### 题目
 
 给定一个整数 $n$，生成所有由 $1 ... n$ 为节点所组成的 二叉搜索树 。
+
+### 回溯
+
+二叉搜索树关键的性质是根节点的值大于左子树所有节点的值，小于右子树所有节点的值，且左子树和右子树也同样为二叉搜索树。因此在生成所有可行的二叉搜索树的时候，假设当前序列长度为 $n$，如果我们枚举根节点的值为 $i$，那么根据二叉搜索树的性质我们可以知道左子树的节点值的集合为 [$1 \ldots i-1]$，右子树的节点值的集合为 $[i+1 \ldots n]$。而左子树和右子树的生成相较于原问题是一个序列长度缩小的子问题，因此我们可以想到用**回溯**的方法来解决这道题目。
+
+我们定义 $generateTrees(start, end)$ 函数表示当前值的集合为 $[\textit{start},\textit{end}]$，返回序列 $[\textit{start},\textit{end}]$ 生成的所有可行的二叉搜索树。按照上文的思路，我们考虑枚举 $[\textit{start},\textit{end}]$ 中的值 $i$ 为当前二叉搜索树的根，那么序列划分为了 $[\textit{start},i-1]$ 和 $[i+1,\textit{end}]$ 两部分。我们递归调用这两部分，即 $generateTrees(start, i - 1)$ 和 $generateTrees(i + 1, end)$，获得所有可行的左子树和可行的右子树，那么最后一步我们只要从可行左子树集合中选一棵，再从可行右子树集合中选一棵拼接到根节点上，并将生成的二叉搜索树放入答案数组即可。
+
+递归的入口即为 $generateTrees(1, n)$，出口为当 $\textit{start}>\textit{end}$ 的时候，当前二叉搜索树为空，返回空节点即可。
+
+``` c++
+class Solution {
+public:
+    vector<TreeNode*> generateTrees(int start, int end) {
+        if (start > end) {
+            return { nullptr };
+        }
+        vector<TreeNode*> allTrees;
+        // 枚举可行根节点
+        for (int i = start; i <= end; i++) {
+            // 获得所有可行的左子树集合
+            vector<TreeNode*> leftTrees = generateTrees(start, i - 1);
+
+            // 获得所有可行的右子树集合
+            vector<TreeNode*> rightTrees = generateTrees(i + 1, end);
+
+            // 从左子树集合中选出一棵左子树，从右子树集合中选出一棵右子树，拼接到根节点上
+            for (auto& left : leftTrees) {
+                for (auto& right : rightTrees) {
+                    TreeNode* currTree = new TreeNode(i);
+                    currTree->left = left;
+                    currTree->right = right;
+                    allTrees.emplace_back(currTree);
+                }
+            }
+        }
+        return allTrees;
+    }
+
+    vector<TreeNode*> generateTrees(int n) {
+        if (!n) {
+            return {};
+        }
+        return generateTrees(1, n);
+    }
+};
+```
+
+## 交错字符串
+
+### 题目
+
+给定三个字符串 $s1$、$s2$、$s3$，请你帮忙验证 $s3$ 是否是由 $s1$ 和 $s2$ **交错**组成的。
+
+两个字符串 s 和 t **交错**的定义与过程如下，其中每个字符串都会被分割成若干**非空**子字符串：
+
+- $s = s_1 + s_2 + ... + s_n$
+- $t = t_1 + t_2 + ... + t_m$
+- $\|n - m\| \leq 1$
+- 交错 是 $s_1 + t_1 + s_2 + t_2 + s_3 + t_3 + ...$ 或者 $t_1 + s_1 + t_2 + s_2 + t_3 + s_3 + ...$
+
+### 动态规划
+
+**双指针法错在哪里：**指针 $p_1$ 一开始指向 $s_1$ 的头部，指针 $p_2$ 一开始指向 $s_2$ 的头部，指针 $p_3$ 指向 $s_3$ 的头部，每次观察 $p_1$ 和 $p_2$ 指向的元素哪一个和 $p_3$ 指向的元素相等，相等则匹配并后移指针。样例就是一个很好的反例，用这种方法判断 $s_1 = {\rm aabcc}$，$s_2 = {\rm dbbca}$，$s_3 = {\rm aadbbcbcac}$ 时，得到的结果是 $\rm False$，实际应该是 $\rm True$。
+
+**解决这个问题的正确方法是动态规划。**首先如果 $|s_1|+|s_2|\neq|s_3|$，那么 $s_3$ 必然不可能由 $s_1$ 和 $s_2$ 交错组成。在 $|s_1|+|s_2|\neq|s_3|$ 时，我们可以用**动态规划**来求解。定义 $f(i, j)$ 表示 $s_1$ 的前 $i$ 个元素和 $s_2$ 的前 $j$ 个元素是否能交错组成 $s_3$ 的前 $i + j$ 个元素。如果 $s_1$ 的第 $i$ 个元素和 $s_3$ 的第 $i + j$ 个元素相等，那么 $s_1$ 的前 $i$ 个元素和 $s_2$ 的前 $j$ 个元素是否能交错组成 $s_3$ 的前 $i + j$ 个元素取决于 $s_1$ 的前 $i - 1$ 个元素和 $s_2$ 的前 $j$ 个元素是否能交错组成 $s_3$ 的前 $i + j - 1$ 个元素，即此时 $f(i, j)$ 取决于 $f(i - 1, j)$，在此情况下如果 $f(i - 1, j)$ 为真，则 $f(i, j)$ 也为真。同样的，如果 $s_2$ 的第 $j$ 个元素和 $s_3$ 的第 $i + j$ 个元素相等并且 $f(i, j - 1)$ 为真，则 $f(i, j)$ 也为真。于是我们可以推导出这样的动态规划转移方程：
+$$
+f(i,j)=[f(i-1,j)~and~s_1(i-1)==s_3(p)]~or~[f(i,j-1)~and~s_2(j-1)==s3(p)]
+$$
+其中 $p=i+j-1$。边界条件为 $f(0,0)=true$。
+
+``` c++
+class Solution {
+public:
+    bool isInterleave(string s1, string s2, string s3) {
+        auto f = vector < vector <int> > (s1.size() + 1, vector <int> (s2.size() + 1, false));
+
+        int n = s1.size(), m = s2.size(), t = s3.size();
+
+        if (n + m != t) {
+            return false;
+        }
+
+        f[0][0] = true;
+        for (int i = 0; i <= n; ++i) {
+            for (int j = 0; j <= m; ++j) {
+                int p = i + j - 1;
+                if (i > 0) {
+                    f[i][j] |= (f[i - 1][j] && s1[i - 1] == s3[p]);
+                }
+                if (j > 0) {
+                    f[i][j] |= (f[i][j - 1] && s2[j - 1] == s3[p]);
+                }
+            }
+        }
+
+        return f[n][m];
+    }
+};
+```
+
+因为这里数组 $f$ 的第 $i$ 行只和第 $i - 1$ 行相关，所以我们可以用**滚动数组优化**这个动态规划，这样空间复杂度可以变成 $O(m)$。
+
+``` c++
+class Solution {
+public:
+    bool isInterleave(string s1, string s2, string s3) {
+        auto f = vector <int> (s2.size() + 1, false);
+
+        int n = s1.size(), m = s2.size(), t = s3.size();
+
+        if (n + m != t) {
+            return false;
+        }
+
+        f[0] = true;
+        for (int i = 0; i <= n; ++i) {
+            for (int j = 0; j <= m; ++j) {
+                int p = i + j - 1;
+                if (i > 0) {
+                    f[j] &= (s1[i - 1] == s3[p]);
+                }
+                if (j > 0) {
+                    f[j] |= (f[j - 1] && s2[j - 1] == s3[p]);
+                }
+            }
+        }
+
+        return f[m];
+    }
+};
+```
+
+## 验证二叉搜索树
+
+### 递归
+
+我们设计一个递归函数 `helper(root, lower, upper)​` 来递归判断，函数表示考虑以 $root$ 为根的子树，判断子树中所有节点的值是否都在 $(l,r)$ 的范围内（注意是**开区间**）。如果 $root$ 节点的值 $val$ 不在 $(l,r)$ 的范围内说明不满足条件直接返回，否则我们要继续递归调用检查它的左右子树是否满足，如果都满足才说明这是一棵二叉搜索树。
+
+那么根据二叉搜索树的性质，在递归调用左子树时，我们需要把上界 $upper$ 改为 $root.val$，即调用 `helper(root.left, lower, root.val)`，因为左子树里所有节点的值均小于它的根节点的值。同理递归调用右子树时，我们需要把下界 $lower$ 改为 $root.val$，即调用 `helper(root.right, root.val, upper)`。
+
+函数递归调用的入口为 `helper(root, -inf, +inf)`， `inf` 表示一个无穷大的值。
+
+``` c++
+class Solution {
+public:
+    bool helper(TreeNode* root, long long lower, long long upper) {
+        if (root == nullptr) {
+            return true;
+        }
+        if (root -> val <= lower || root -> val >= upper) {
+            return false;
+        }
+        return helper(root -> left, lower, root -> val) && helper(root -> right, root -> val, upper);
+    }
+    bool isValidBST(TreeNode* root) {
+        return helper(root, LONG_MIN, LONG_MAX);
+    }
+};
+```
+
+### 中序遍历
+
+基于方法一中提及的性质，我们可以进一步知道二叉搜索树「中序遍历」得到的值构成的序列一定是升序的，这启示我们在中序遍历的时候实时检查当前节点的值是否大于前一个中序遍历到的节点的值即可。如果均大于说明这个序列是升序的，整棵树是二叉搜索树，否则不是。
+
+``` c++
+class Solution {
+public:
+    bool isValidBST(TreeNode* root) {
+        stack<TreeNode*> stack;
+        long long inorder = (long long)INT_MIN - 1;
+
+        while (!stack.empty() || root != nullptr) {
+            while (root != nullptr) {
+                stack.push(root);
+                root = root -> left;
+            }
+            root = stack.top();
+            stack.pop();
+            // 如果中序遍历得到的节点的值小于等于前一个 inorder，说明不是二叉搜索树
+            if (root -> val <= inorder) {
+                return false;
+            }
+            inorder = root -> val;
+            root = root -> right;
+        }
+        return true;
+    }
+};
+```
+
+## 恢复二叉搜索树
+
+### 显式中序遍历
+
+我们需要考虑两个节点被错误地交换后对原二叉搜索树造成了什么影响。对于二叉搜索树，我们知道如果对其进行中序遍历，得到的值序列是递增有序的，而如果我们错误地交换了两个节点，等价于在这个值序列中交换了两个值，破坏了值序列的递增性。解题算法步骤如下：
+
+1. 找到二叉搜索树中序遍历得到值序列的不满足条件的位置。
+2. 如果有两个，我们记为 $i$ 和 $j$ （$i<j$ 且 $a_i>a_{i+1}~\&\&~ a_j>a_{j+1}$），那么对应被错误交换的节点即为 $a_i$ 对应的节点和 $a_{j+1}$ 对应的节点，我们分别记为 $x$ 和 $y$。
+3. 如果有一个，我们记为 $i$，那么对应被错误交换的节点即为 $a_i$ 对应的节点和 $a_{i+1}$ 对应的节点，我们分别记为 $x$ 和 $y$。
+4. 交换 $x$ 和 $y$ 两个节点即可。
+
+实现中，开辟一个新数组 \textit{nums}nums 来记录中序遍历得到的值序列，然后线性遍历找到两个位置 ii 和 jj，并重新遍历原二叉搜索树修改对应节点的值完成修复。
+
+``` c++
+class Solution {
+public:
+    void inorder(TreeNode* root, vector<int>& nums) {
+        if (root == nullptr) {
+            return;
+        }
+        inorder(root->left, nums);
+        nums.push_back(root->val);
+        inorder(root->right, nums);
+    }
+
+    pair<int,int> findTwoSwapped(vector<int>& nums) {
+        int n = nums.size();
+        int x = -1, y = -1;
+        for(int i = 0; i < n - 1; ++i) {
+            if (nums[i + 1] < nums[i]) {
+                y = nums[i + 1];
+                if (x == -1) {
+                    x = nums[i];
+                }
+                else break;
+            }
+        }
+        return {x, y};
+    }
+    
+    void recover(TreeNode* r, int count, int x, int y) {
+        if (r != nullptr) {
+            if (r->val == x || r->val == y) {
+                r->val = r->val == x ? y : x;
+                if (--count == 0) {
+                    return;
+                }
+            }
+            recover(r->left, count, x, y);
+            recover(r->right, count, x, y);
+        }
+    }
+
+    void recoverTree(TreeNode* root) {
+        vector<int> nums;
+        inorder(root, nums);
+        pair<int,int> swapped= findTwoSwapped(nums);
+        recover(root, 2, swapped.first, swapped.second);
+    }
+};
+```
+
+### 隐式中序遍历
+
+方法一是显式地将中序遍历的值序列保存在一个 $\textit{nums}$ 数组中，然后再去寻找被错误交换的节点，但我们也可以隐式地在中序遍历的过程就找到被错误交换的节点 $x$ 和 $y$。
+
+具体来说，由于我们只关心中序遍历的值序列中每个**相邻的位置的大小关系是否满足条件**，且错误交换后**最多两个位置不满足条件**，因此在中序遍历的过程我们只需要维护当前中序遍历到的最后一个节点 $\textit{pred}$，然后在遍历到下一个节点的时候，看两个节点的值是否满足前者小于后者即可，如果不满足说明找到了一个交换的节点，且在找到两次以后就可以终止遍历。
+
+这样我们就可以在中序遍历中直接找到被错误交换的两个节点 $x$ 和 $y$，不用显式建立 $\textit{nums}$ 数组。
+
+``` c++
+class Solution {
+public:
+    void recoverTree(TreeNode* root) {
+        stack<TreeNode*> stk;
+        TreeNode* x = nullptr;
+        TreeNode* y = nullptr;
+        TreeNode* pred = nullptr;
+
+        while (!stk.empty() || root != nullptr) {
+            while (root != nullptr) {
+                stk.push(root);
+                root = root->left;
+            }
+            root = stk.top();
+            stk.pop();
+            if (pred != nullptr && root->val < pred->val) {
+                y = root;
+                if (x == nullptr) {
+                    x = pred;
+                }
+                else break;
+            }
+            pred = root;
+            root = root->right;
+        }
+
+        swap(x->val, y->val);
+    }
+};
+```
+
+### Morris中序遍历
+
+**Morris遍历算法**能将非递归的中序遍历的空间复杂度将为 $O(1)$，整体步骤如下：
+
+1. 如果 $x$ 无左孩子，则访问 $x$ 的右孩子，即 $x=x.right$
+2. 如果 $x$ 有左孩子，则找到 $x$ 左子树上最右的节点（**即左子树中序遍历的最后一个节点，$x$ 在中序遍历中的前驱节点**），我们记为 $predecessor$。根据 $predecessor$ 的右孩子是否为空，进行如下操作：
+   - 如果 $predecessor$ 的右孩子为空，则将其右孩子指向 $x$，然后访问 $x$ 的左孩子，即 $x = x.\textit{left}$。
+   - 如果 $\textit{predecessor}$ 的右孩子不为空，则此时其右孩子指向 $x$，说明我们已经遍历完 $x$ 的左子树，我们将 $\textit{predecessor}$ 的右孩子置空，然后访问 $x$ 的右孩子，即 $x = x.\textit{right}$。
+
+3. 重复上述操作，直至访问玩整棵树
+
+```  c++
+class Solution {
+public:
+    void recoverTree(TreeNode* root) {
+        TreeNode *x = nullptr, *y = nullptr, *pred = nullptr, *predecessor = nullptr;
+
+        while (root != nullptr) {
+            if (root->left != nullptr) {
+                // predecessor 节点就是当前 root 节点向左走一步，然后一直向右走至无法走为止
+                predecessor = root->left;
+                while (predecessor->right != nullptr && predecessor->right != root) {
+                    predecessor = predecessor->right;
+                }
+                
+                // 让 predecessor 的右指针指向 root，继续遍历左子树
+                if (predecessor->right == nullptr) {
+                    predecessor->right = root;
+                    root = root->left;
+                }
+                // 说明左子树已经访问完了，我们需要断开链接
+                else {
+                    if (pred != nullptr && root->val < pred->val) {
+                        y = root;
+                        if (x == nullptr) {
+                            x = pred;
+                        }
+                    }
+                    pred = root;
+
+                    predecessor->right = nullptr;
+                    root = root->right;
+                }
+            }
+            // 如果没有左孩子，则直接访问右孩子
+            else {
+                if (pred != nullptr && root->val < pred->val) {
+                    y = root;
+                    if (x == nullptr) {
+                        x = pred;
+                    }
+                }
+                pred = root;
+                root = root->right;
+            }
+        }
+        swap(x->val, y->val);
+    }
+};
+```
+
+## 相同的树
+
+### 深度优先搜索
+
+如果两个二叉树都为空，则两个二叉树相同。如果两个二叉树中有且只有一个为空，则两个二叉树一定不相同。
+
+如果两个二叉树都不为空，那么首先判断它们的根节点的值是否相同，若不相同则两个二叉树一定不同，若相同，再分别判断两个二叉树的左子树是否相同以及右子树是否相同。这是一个递归的过程，因此可以使用深度优先搜索，递归地判断两个二叉树是否相同。
+
+``` c++
+class Solution {
+public:
+    bool isSameTree(TreeNode* p, TreeNode* q) {
+        if (p == nullptr && q == nullptr) {
+            return true;
+        } else if (p == nullptr || q == nullptr) {
+            return false;
+        } else if (p->val != q->val) {
+            return false;
+        } else {
+            return isSameTree(p->left, q->left) && isSameTree(p->right, q->right);
+        }
+    }
+};
+```
+
+### 广度优先搜索
+
+使用两个队列分别存储两个二叉树的节点。初始时将两个二叉树的根节点分别加入两个队列。每次从两个队列各取出一个节点，进行如下比较操作。
+
+1. 比较两个节点的值，如果两个节点的值不相同则两个二叉树一定不同；
+2. 如果两个节点的值相同，则判断两个节点的子节点是否为空，如果只有一个节点的左子节点为空，或者只有一个节点的右子节点为空，则两个二叉树的结构不同，因此两个二叉树一定不同；
+3. 如果两个节点的子节点的结构相同，则将两个节点的非空子节点分别加入两个队列，子节点加入队列时需要注意顺序，如果左右子节点都不为空，则先加入左子节点，后加入右子节点。
+
+如果搜索结束时两个队列同时为空，则两个二叉树相同。如果只有一个队列为空，则两个二叉树的结构不同，因此两个二叉树不同。
+
+``` c++
+class Solution {
+public:
+    bool isSameTree(TreeNode* p, TreeNode* q) {
+        if (p == nullptr && q == nullptr) {
+            return true;
+        } else if (p == nullptr || q == nullptr) {
+            return false;
+        }
+        queue <TreeNode*> queue1, queue2;
+        queue1.push(p);
+        queue2.push(q);
+        while (!queue1.empty() && !queue2.empty()) {
+            auto node1 = queue1.front();
+            queue1.pop();
+            auto node2 = queue2.front();
+            queue2.pop();
+            if (node1->val != node2->val) {
+                return false;
+            }
+            auto left1 = node1->left, right1 = node1->right, left2 = node2->left, right2 = node2->right;
+            if ((left1 == nullptr) ^ (left2 == nullptr)) {
+                return false;
+            }
+            if ((right1 == nullptr) ^ (right2 == nullptr)) {
+                return false;
+            }
+            if (left1 != nullptr) {
+                queue1.push(left1);
+            }
+            if (right1 != nullptr) {
+                queue1.push(right1);
+            }
+            if (left2 != nullptr) {
+                queue2.push(left2);
+            }
+            if (right2 != nullptr) {
+                queue2.push(right2);
+            }
+        }
+        return queue1.empty() && queue2.empty();
+    }
+};
+```
+
+
+
+
+
