@@ -1,4 +1,4 @@
-LeetCode刷题
+	LeetCode刷题
 
  [TOC]
 ## 二叉树的中序遍历
@@ -60,12 +60,54 @@ public:
 - 如果 $A[k/2-1]<=B[k/2-1]$，$A[0]$ 到 $A[k/2-1]$ 都不可能第 $k$ 个数，可以全部排除
 - 如果 $A[k/2-1]>B[k/2-1]$，$B[0]$ 到 $B[k/2-1]$ 都不可能是第 $k$ 个数，可以全部排除
 
-可以看到，比较A[*k*/2-1]和B[*k*/2-1]之后，可以排除*k*/2个不可能是第*k*小的数，查找范围缩小了一半。同时，我们将在排除后的新数组上继续进行二分查找，并且根据我们排除数的个数，减少 *k* 的值，这是因为我们排除的数都不大于第 *k* 小的数。
+<img src="https://assets.leetcode-cn.com/solution-static/4/4_fig1.png" width="800" height="450">
+
+可以看到，比较 $A[k/2-1]$ 和 $B[k/2-1]$ 之后，可以排除 $k/2$ 个不可能是第 $k$ 小的数，查找范围缩小了一半。同时，我们将在排除后的新数组上继续进行二分查找，并且根据我们排除数的个数，减少 $k$ 的值，这是因为我们排除的数都不大于第 $k$ 小的数。
 有以下三种情况需要特殊处理：
 
-- 如果A[*k*/2-1]或者B[*k*/2-1]越界，那么可以选取对应数组中的最后一个元素。在这种情况下，**必须根据排除数分个数减少*k*的值**， 而不能直接将*k*-*k*/2
-- 如果一个数组为空，说明该数组中的所有元素都被排除，我们可以直接返回另一个数组中第*k*小的元素
-- 如果*k*=1，只需返回两个数组首元素的最小值即可
+- 如果 $A[k/2-1]$ 或者 $B[k/2-1]$ 越界，那么可以选取对应数组中的最后一个元素。在这种情况下，**必须根据排除数的个数减少*k*的值**， 而不能直接将 $k-k/2$
+- 如果一个数组为空，说明该数组中的所有元素都被排除，我们可以直接返回另一个数组中第 $k$ 小的元素
+- 如果 $k=1$，只需返回两个数组首元素的最小值即可
+
+用一个例子说明上述算法。假设两个有序数组如下：
+
+``` c++
+A: 1 3 4 9
+B: 1 2 3 4 5 6 7 8 9
+```
+
+两个有序数组的长度分别是 $4$ 和 $9$，长度之和是 $13$，中位数是两个有序数组中的第 $7$ 个元素，因此需要找到第 $k=7$ 个元素。
+
+比较两个有序数组中下标为 $k/2-1=2$ 的数，即 $\text{A}[2]$ 和 $\text{B}[2]$，如下面所示：
+
+``` c++
+A: 1 3 4 9
+       ↑
+B: 1 2 3 4 5 6 7 8 9
+       ↑
+```
+
+由于 $\text{A}[2] > \text{B}[2]$，因此排除 $\text{B}[0]$ 到 $\text{B}[2]$，即数组 $\text{B}$ 的下标偏移（$offset$）变为 $3$，同时更新 $k$ 的值：$k=k-k/2=4$。
+
+下一步寻找，比较两个有序数组中下标为 $k/2-1=1$ 的数，即 $\text{A}[1]$ 和 $\text{B}[4]$，如下面所示，其中方括号部分表示已经被排除的数。
+
+``` c++
+A: [1 3] 4 9
+         ↑
+B: [1 2 3] 4 5 6 7 8 9
+           ↑
+```
+
+由于 $\text{A}[2]=\text{B}[3]$，根据之前的规则，排除 $\text{A}$ 中的元素，因此排除 $\text{A}[2]$，即数组 $\text{A}$ 的下标偏移变为 $3$，同时更新 $k$ 的值： $k=k-k/2=1$。
+
+由于 $k$ 的值变成 $1$，因此比较两个有序数组中的未排除下标范围内的第一个数，其中较小的数即为第 $k$ 个数，由于 $\text{A}[3] > \text{B}[3]$，因此第 $k$ 个数是 $\text{B}[3]=4$。
+
+``` c++
+A: [1 3 4] 9
+           ↑
+B: [1 2 3] 4 5 6 7 8 9
+           ↑
+```
 
 ``` c++
 class Solution {
@@ -129,15 +171,15 @@ public:
 - 中位数的作用是什么：
 > 将一个集合划分为两个长度相等的子集，其中一个子集的元素总是大于另一个子集中的元素
 
-- 首先，在任意位置*i*将A划分为两个部分：
+- 首先，在任意位置 $i$ 将 $A$ 划分为两个部分：
 ```
            left_A            |          right_A
     A[0], A[1], ..., A[i-1]  |  A[i], A[i+1], ..., A[m-1]
 ```
-由于A有*m*个元素，所以有*m*+1中划分的方法
-> len(left_A) = *i*, len(right_A) = *m-i*
+由于 $A$有 $m$ 个元素，所以有 $m+1$ 中划分的方法
+> $len(left\_A) = i, len(right\_A) = m-i$
 
-- 采用同样的方式，在任意位置*j*将B划分为两个部分：
+- 采用同样的方式，在任意位置 $j$ 将 $B$ 划分为两个部分：
 ```
            left_B            |          right_B
     B[0], B[1], ..., B[j-1]  |  B[j], B[j+1], ..., B[n-1]
@@ -148,31 +190,31 @@ public:
     A[0], A[1], ..., A[i-1]  |  A[i], A[i+1], ..., A[m-1]
     B[0], B[1], ..., B[j-1]  |  B[j], B[j+1], ..., B[n-1]
 ```
-- 当A和B的总长度是偶数时，如果可以确认：
-   + len(left_part) = len(right_part)
-   + max(left_part) <= min(right_part)
+- 当 $A$ 和 $B$ 的总长度是偶数时，如果可以确认：
+   + $len(left\_part) = len(right\_part)$
+   + $max(left\_part) <= min(right\_part)$
 
   此时，中位数就是前一部分的最大值和后一部分的最小值的平均值
-- 当A和B的总长度是奇数时，如果可以确认：
-   + len(left_part) = len(right_part) + 1
-   + max(left_part) <= min(right_part)
+- 当 $A$ 和 $B$ 的总长度是奇数时，如果可以确认：
+   + $len(left\_part) = len(right\_part) + 1$
+   + $max(left\_part) <= min(right\_part)$
 
   此时，中位数就是前一部分的最大值
 - 第一个条件对于总长度是偶数和奇数的情况有所不同，但是可以将两种情况合并。第二个条件对于总长度是偶数和奇数的情况是一样的。要确保这两个条件，需要保证：
-   + *i + j = m - i + n - j*（当*m + n*为偶数）或*i + j = m - i + n - j + 1*（当*m + n*为奇数）。
-   + B[*j*-1] <= A[*i*] 以及A[*i*-1] <= B[*j*]
+   + $i + j = m - i + n - j$（当 $m + n$ 为偶数）或 $i + j = m - i + n - j + 1$（当 $m + n$ 为奇数）。
+   + $B[j-1] <= A[i]$ 以及 $A[i-1] <= B[j]$
 
 - 我们需要做的是：
-> 在[0，*m*]中找到*i*，使得
->  B[*j*-1] <= A[*i*] 且A[*i*-1] <= B[*j*]， 其中*j* = $\frac {m+n+1}{2}$ - *i*
+> 在 $[0，m]$ 中找到 $i$，使得
+>  $B[j-1] <= A[i]$ 且 $A[i-1] <= B[j]$， 其中 $j = \frac {m+n+1}{2} - i$
 
   可以证明它等价于：
-  > 在[0，*m*]中找到最大的*i*，使得
-  >  A[*i*-1] <= B[*j*]， 其中*j* = $\frac {m+n+1}{2}$ - *i*
+  > 在 $[0，m]$ 中找到最大的 $i$，使得
+  >  $A[i-1] <= B[j]$， 其中 $j = \frac {m+n+1}{2} - i$
 
   这是因为：
-  + 当 *i* 从 0 ∼ *m* 递增时，A[*i*-1] 递增，B[*j*] 递减，所以一定存在一个最大的 *i* 满足A[*i*-1] <= B[*j*]；
-  + 如果*i*是最大的，那么说明*i*+1不满足，有A[*i*]>B[*j*-1]
+  + 当 $i$ 从 $0 ∼ m$ 递增时，$A[i-1]$ 递增，$B[j]$ 递减，所以一定存在一个最大的 $i$ 满足 $A[i-1] <= B[j]$；
+  + 如果 $i$ 是最大的，那么说明 $i+1$ 不满足，有 $A[i]>B[j-1]$
 
 ``` c++ 
 class Solution {
@@ -368,6 +410,9 @@ rev = temp;
 ![avatar](https://pic.leetcode-cn.com/42c736510f4914af169907d61b22d1a39bd5a16bbd7eca0466d90350e2763164-2.jpg)
 当 rev 为负时，逻辑相似。
 ![avatar](https://pic.leetcode-cn.com/525aa75c19702e57b780c91a7ebb990359b14e96acc09b6327d9e1f0a5b3a16a-3.jpg)
+
+对于溢出的处理方式通常可以转换为 *INT_MAX* 的逆操作。比如判断某数乘 10 是否会溢出，那么就把该数和 *INT_MAX* 除 10 进行比较
+
 ``` c++
 class Solution {
 public:
@@ -386,17 +431,19 @@ public:
 ```
 - 时间复杂度分析：$\lg(x)$，x 中大约有$\lg(x)$位数字
 ## 字符串转换为整数(Atoi)
-对于溢出的处理方式通常可以转换为 *INT_MAX* 的逆操作。比如判断某数乘 10 是否会溢出，那么就把该数和 *INT_MAX* 除 10 进行比较
 ### 自动机
 程序在每个时刻有一个状态 `s`，每次从序列中输入一个字符 `c`，并根据字符 `c` 转移到下一个状态 `s'`。这样，我们只需要建立一个覆盖所有情况的从 `s` 与 `c` 映射到 `s'` 的表格即可解决题目中的问题。表格如下：
 
-''	+/-	number	other
-start	start	signed	in_number	end
-signed	end	end	in_number	end
-in_number	end	end	in_number	end
-end	end	end	end	end
+|            | **' '** |  +/-   | number | other |
+| ---------- | :-----: | :----: | :----: | :---: |
+| **start**  |  start  | signed | number |  end  |
+| **signed** |   end   |  end   | number |  end  |
+| **number** |   end   |  end   | number |  end  |
+| **end**    |   end   |  end   |  end   |  end  |
+
 也可以用下图更直观地展示：
-<img src="https://assets.leetcode-cn.com/solution-static/8_fig1.PNG" width="600" height="400" align="center">
+<img src="https://assets.leetcode-cn.com/solution-static/8_fig1.PNG" width="600" height="300" align="center">
+
 ``` c++
 class Automaton {
     string state = "start";
@@ -452,7 +499,7 @@ $$
     + 不匹配字符，将该组合扔掉，不再进行匹配。
     根据这一本质，可以写出状态转移方程：
 $$
-f[i][j] = \begin{cases} f[i-1][j] or f[i][j-2], & s[i] == p[j-1] \\ f[i][j-2], & s[i] \neq p[j-2] \end{cases}
+f[i][j] = \begin{cases} f[i-1][j] or f[i][j-2], & s[i] == p[j-1] \\ f[i][j-2], & s[i] \neq p[j-1] \end{cases}
 $$
 - 在任意情况下，只要 $p[j]$ 是`.`，那么 $p[j]$ 一定匹配 $s$ 中的任意一个小写字母。
 最终的状态转移方程如下：
@@ -460,7 +507,7 @@ $$
 f[i][j] = \begin{cases} if (p[j] \neq '*') &= \begin{cases} f[i-1][j-1], & match(s[i], p[j]) \\ false, & otherwise \end{cases} \\ otherwise &= \begin{cases}  f[i-1][j] or f[i][j-2], & match(s[i], p[j-1]) \\ f[i][j-2], & otherwise \end{cases} \end{cases}
 $$
 ### 细节
-动态规划的边界条件为 $f[0][0] = true$，即两个空字符串是可以匹配的。最终的答案即为 *f[m][n]*，其中 *m* 和 *n* 分别是字符串 *s* 和 *p* 的长度。
+动态规划的边界条件为 $f[0][0] = true$，即两个空字符串是可以匹配的。最终的答案即为 $f[m][n]$，其中 *m* 和 *n* 分别是字符串 *s* 和 *p* 的长度。
 ``` c++
 class Solution {
 public:
@@ -616,7 +663,9 @@ $$
 LCP(S_1,...,S_n)=LCP(LCP(LCP(S_1, S_2), S_3),...,S_n)
 $$
 依次遍历字符串数组中的每个字符串，对于每个遍历到的字符串，更新最长公共前缀，当遍历完所有的字符串以后，即可得到字符串数组中的最长公共前缀。如果在尚未遍历完所有的字符串时，最长公共前缀已经是空串，则最长公共前缀一定是空串，因此不需要继续遍历剩下的字符串，直接返回空串即可。示意图如下：
-<img src="https://assets.leetcode-cn.com/solution-static/14/14_fig1.png" width="600" height="400" align="center">
+
+<img src="https://assets.leetcode-cn.com/solution-static/14/14_fig1.png" width="600" height="400">
+
 ``` c++
 class Solution {
 public:
@@ -675,6 +724,7 @@ $$
 LCP(S_1,...,S_n) = LCP(LCP(S_1,...,S_k), LCP(S_{k+1}, S_n)),   1 < k < n
 $$
 <img src="https://assets.leetcode-cn.com/solution-static/14/14_fig3.png" width="600" height="400" align="center">
+
 ``` c++
 class Solution {
 public:
@@ -1174,7 +1224,138 @@ public:
     }
 };
 ```
+## K个一组的翻转链表
+
+### 模拟
+
+把链表节点按照 `k` 个一组分组，所以可以使用一个指针 `head` 依次指向每组的头节点。这个指针每次向前移动 `k` 步，直至链表结尾。对于每个分组，我们先判断它的长度是否大于等于 `k`。若是，我们就翻转这部分链表，否则不需要翻转。
+
+在翻转子链表的时候，我们不仅需要子链表头节点 `head`，还需要有 `head` 的上一个节点 `pre`，以便翻转完后把子链表再接回 `pre`。
+
+但是对于第一个子链表，它的头节点 `head` 前面是没有节点 `pre` 的。太麻烦了！难道只能特判了吗？答案是否定的。没有条件，我们就创造条件；没有节点，我们就创建一个节点。我们新建一个节点，把它接到链表的头部，让它作为 `pre` 的初始值，这样 `head` 前面就有了一个节点，我们就可以避开链表头部的边界条件。这么做还有一个好处，下面我们会看到。
+
+反复移动指针 `head` 与 `pre`，对 `head` 所指向的子链表进行翻转，直到结尾，我们就得到了答案。下面我们该返回函数值了。
+
+有的同学可能发现这又是一件麻烦事：链表翻转之后，链表的头节点发生了变化，那么应该返回哪个节点呢？照理来说，前 `k` 个节点翻转之后，链表的头节点应该是第 `k` 个节点。那么要在遍历过程中记录第 `k` 个节点吗？但是如果链表里面没有 `k` 个节点，答案又还是原来的头节点。我们又多了一大堆循环和判断要写，太崩溃了！
+
+等等！还记得我们创建了节点 `pre` 吗？这个节点一开始被连接到了头节点的前面，而无论之后链表有没有翻转，它的 `next` 指针都会指向正确的头节点。那么我们只要返回它的下一个节点就好了。至此，问题解决。
+
+``` c++
+class Solution {
+public:
+    // 翻转一个子链表，并且返回新的头与尾
+    pair<ListNode*, ListNode*> myReverse(ListNode* head, ListNode* tail) {
+        ListNode* prev = tail->next;
+        ListNode* p = head;
+        while (prev != tail) {
+            ListNode* nex = p->next;
+            p->next = prev;
+            prev = p;
+            p = nex;
+        }
+        return {tail, head};
+    }
+
+    ListNode* reverseKGroup(ListNode* head, int k) {
+        ListNode* hair = new ListNode(0);
+        hair->next = head;
+        ListNode* pre = hair;
+
+        while (head) {
+            ListNode* tail = pre;
+            // 查看剩余部分长度是否大于等于 k
+            for (int i = 0; i < k; ++i) {
+                tail = tail->next;
+                if (!tail) {
+                    return hair->next;
+                }
+            }
+            ListNode* nex = tail->next;
+            // 这里是 C++17 的写法，也可以写成
+            // pair<ListNode*, ListNode*> result = myReverse(head, tail);
+            // head = result.first;
+            // tail = result.second;
+            tie(head, tail) = myReverse(head, tail);
+            // 把子链表重新接回原链表
+            pre->next = head;
+            tail->next = nex;
+            pre = tail;
+            head = tail->next;
+        }
+
+        return hair->next;
+    }
+};
+```
+
+## 移除元素
+
+### 双指针
+
+由于题目要求删除数组中等于 $\textit{val}$ 的元素，因此输出数组的长度一定小于等于输入数组的长度，我们可以把输出的数组直接写在输入数组上。可以使用双指针：右指针 $\textit{right}$ 指向当前将要处理的元素，左指针 $\textit{left}$ 指向下一个将要赋值的位置。
+
+- 如果右指针指向的元素不等于 $\textit{val}$，它一定是输出数组的一个元素，我们就将右指针指向的元素复制到左指针位置，然后将左右指针同时右移；
+- 如果右指针指向的元素等于 $\textit{val}$，它不能在输出数组里，此时左指针不动，右指针右移一位。
+
+整个过程保持不变的性质是：区间 $[0,\textit{left})$ 中的元素都不等于 $\textit{val}$。当左右指针遍历完输入数组以后，$\textit{left}$ 的值就是输出数组的长度。
+
+这样的算法在最坏情况下（输入数组中没有元素等于 $\textit{val}$），左右指针各遍历了数组一次。
+
+``` c++
+class Solution {
+public:
+    int removeElement(vector<int>& nums, int val) {
+        int n = nums.size();
+        int left = 0;
+        for (int right = 0; right < n; right++) {
+            if (nums[right] != val) {
+                nums[left] = nums[right];
+                left++;
+            }
+        }
+        return left;
+    }
+};
+```
+
+### 双指针优化
+
+如果要移除的元素恰好在数组的开头，例如序列 $[1,2,3,4,5]$，当 $\textit{val}$ 为 $1$ 时，我们需要把每一个元素都左移一位。注意到题目中说：「元素的顺序可以改变」。实际上我们可以直接将最后一个元素 $5$ 移动到序列开头，取代元素 $1$，得到序列 $[5,2,3,4]$，同样满足题目要求。这个优化在序列中 $\textit{val}$ 元素的数量较少时非常有效。
+
+实现方面，我们依然使用双指针，两个指针初始时分别位于数组的首尾，向中间移动遍历该序列。
+
+如果左指针 $\textit{left}$ 指向的元素等于 $\textit{val}$，此时将右指针 $\textit{right}$ 指向的元素复制到左指针 $\textit{left}$ 的位置，然后右指针 $\textit{right}$ 左移一位。如果赋值过来的元素恰好也等于 $\textit{val}$，可以继续把右指针 $\textit{right}$ 指向的元素的值赋值过来（左指针 $\textit{left}$ 指向的等于 $\textit{val}$ 的元素的位置继续被覆盖），直到左指针指向的元素的值不等于 $\textit{val}$ 为止。
+
+当左指针 $\textit{left}$ 和右指针 $\textit{right}$ 重合的时候，左右指针遍历完数组中所有的元素。
+
+这样的方法两个指针在最坏的情况下合起来只遍历了数组一次。与方法一不同的是，**方法二避免了需要保留的元素的重复赋值操作**。
+
+``` c++
+class Solution {
+public:
+    int removeElement(vector<int>& nums, int val) {
+        int left = 0, right = nums.size();
+        while (left < right) {
+            if (nums[left] == val) {
+                nums[left] = nums[right - 1];
+                right--;
+            } else {
+                left++;
+            }
+        }
+        return left;
+    }
+};
+```
+
+## 实现strStr()
+
+### KMP
+
+
+
 ## 整数除法
+
 ### 倍增乘法
 <img src="https://pic.leetcode-cn.com/1602148365-shUMvq-image.png" width="800" height="500">
 
@@ -1217,8 +1398,9 @@ public:
 ## 串联所有单词的子串
 ### 滑动窗口+HashMap
 首先，最直接的思路，判断每个子串是否符合，符合就把下标保存起来，最后返回即可。
-<img src="https://pic.leetcode-cn.com/d79049a498051b0ee12ac60d41810c335c6483ecc2feb485b414ddd7a21af121-image.png" width="600" height="400" align="center">
+<img src="https://pic.leetcode-cn.com/d79049a498051b0ee12ac60d41810c335c6483ecc2feb485b414ddd7a21af121-image.png" width="650" height="400" align="center">
 由于子串包含的单词顺序并不需要固定，当单词数量增加，时间复杂度呈指数增加。考虑用`两个HashMap`来解决。首先，我们把所有的单词存到 **HashMap** 里，**key** 直接存单词，**value** 存单词出现的个数。然后扫描子串的单词，如果当前扫描的单词在之前的 **HashMap** 中，就把该单词存到新的 **HashMap** 中，并判断新的 **HashMap** 中该单词的 **value** 是不是大于之前的 **HashMap** 该单词的 **value** ，如果大了，就代表该子串不是我们要找的，接着判断下一个子串就可以了。如果不大于，那么我们接着判断下一个单词的情况。子串扫描结束，如果子串的全部单词都符合，那么该子串就是我们找的其中一个。具体例子如下：
+
 1. 把 $words$ 中的单词存到一个 **HashMap**中：
 <img src="https://pic.leetcode-cn.com/b8cb6bc68dc678d742b758afd94ffb63bb84818464d5c8df9b03b7a1067c4537-image.png" width="800" height="360" style="zoom:80%;" >
 2. 然后遍历子串的每个单词：
@@ -1280,36 +1462,38 @@ public:
 class solution {
 public:
         vector<int> findSubstring(string s, vector<string>& words) {
-            if(words.empty()) return {};
-            unordered_map<string,int> wordmap,smap;
-            for(string word:words) wordmap[word]++;
+            if(words.empty()) 
+                return {};
+            unordered_map<string,int> wordmap, smap;
+            for(string word : words) 
+                wordmap[word]++;
             int wordlen = words[0].size();
             int wordnum = words.size();
             vector<int> ans;
-            for(int k=0;k<wordlen;k++){
+            for(int k = 0; k < wordlen; k++){
                 int i=k,j=k;
-                while(i<s.size()-wordnum*wordlen+1){
-                    while(j<i+wordnum*wordlen){
-                        string temp = s.substr(j,wordlen);
+                while(i < s.size()-wordnum*wordlen+1){
+                    while(j < i + wordnum*wordlen){
+                        string temp = s.substr(j, wordlen);
                         smap[temp]++;
-                        j+=wordlen;
-                        if(wordmap[temp]==0){//情况二，有words中不存在的单词
+                        j += wordlen;
+                        if(wordmap[temp] == 0){//情况二，有words中不存在的单词
                             i=j;//对i加速
                             smap.clear();
                             break;
                         }
-                        else if(smap[temp]>wordmap[temp]){//情况三，子串中temp数量超了
-                            while(smap[temp]>wordmap[temp]){
-                                smap[s.substr(i,wordlen)]--;
+                        else if(smap[temp] > wordmap[temp]){//情况三，子串中temp数量超了
+                            while(smap[temp] > wordmap[temp]){
+                                smap[s.substr(i, wordlen)]--;
                                 i+=wordlen;//对i加速
                             }
                             break;
                         }                   
                     }
                     //正确匹配，由于情况二和三都对i加速了，不可能满足此条件
-                    if(j==i+wordlen*wordnum){
+                    if(j == i + wordlen*wordnum){
                         ans.push_back(i);
-                        smap[s.substr(i,wordlen)]--;
+                        smap[s.substr(i, wordlen)]--;
                         i+=wordlen;//i正常前进
                     }
                 }
@@ -1392,7 +1576,8 @@ public:
     - 如果栈不为空，当前右括号的下标减去栈顶元素即为**以该右括号为结尾的最长有效括号的长度**。
 
 然后从前往后遍历字符串更新答案即可。需要注意的是，如果一开始栈为空，第一个字符为左括号的时候我们会将其放入栈中，这样就不满足提及的**最后一个没有被匹配的右括号的下标**，为了保持统一，我们在一开始的时候往栈中放入一个值为 $−1$ 的元素。
-<img src="https://media.giphy.com/media/2b3MxNcUEo1kFoJobG/giphy.gif" width="800" height="600" align="center">
+<img src="https://media.giphy.com/media/2b3MxNcUEo1kFoJobG/giphy.gif" width="600" height="380" align="center">
+
 ``` c++
 class Solution {
 public:
@@ -1691,10 +1876,10 @@ public:
 $$
 dfs(pos+1,rest − i \times freq[pos][0])
 $$
-    即我们选择了这个数 $i$ 次。这里 $i$ 不能大于这个数出现的次数，并且 $i \times freq[pos][0]$ 也不能大于 $rest$。同时，我们需要将 $i$ 个 $freq[pos][0]$ 放入列表中。
+即我们选择了这个数 $i$ 次。这里 $i$ 不能大于这个数出现的次数，并且 $i \times freq[pos][0]$ 也不能大于 $rest$。同时，我们需要将 $i$ 个 $freq[pos][0]$ 放入列表中。
 
-这样一来，我们就可以不重复地枚举所有的组合了。
-一种比较常用的优化方法是，我们将 $freq$ 根据数从小到大排序，这样我们在递归时会先选择小的数，再选择大的数。
+这样一来，我们就可以不重复地枚举所有的组合了。一种比较常用的优化方法是，我们将 $freq$ 根据数从小到大排序，这样我们在递归时会先选择小的数，再选择大的数。
+
 ``` c++
 class Solution {
 private:
@@ -1842,11 +2027,12 @@ class Solution {
 ```
 
 ### 单调栈
-维护一个单调栈，单调栈存储的是下标，满足从栈底到栈顶的下标对应的数组 $height$ 中的元素递减。
+维护一个单调栈，单调栈存储的是下标，满足**从栈底到栈顶的下标对应的数组 $height$ 中的元素递减**。
 从左到右遍历数组，遍历到下标 $i$ 时，如果栈内至少有两个元素，记栈顶元素为 $top$，$top$ 的下面一个元素是 $left$，则一定有 $height[left]≥height[top]$。如果 $height[i]>height[top]$，则得到一个可以接雨水的区域，该区域的宽度是 $i−left−1$，高度是 $min(height[left],height[i])−height[top]$，根据宽度和高度即可计算得到该区域能接的雨水量。
 为了得到 $left$，需要将 $top$ 出栈。在对 $top$ 计算能接的雨水量之后，$left$ 变成新的 $top$，重复上述操作，直到栈变为空，或者栈顶下标对应的 $height$ 中的元素大于或等于 $height[i]$。
 在对下标 $i$ 处计算能接的雨水量之后，将 $i$ 入栈，继续遍历后面的下标，计算能接的雨水量。遍历结束之后即可得到能接的雨水总量。
 <img src="https://media.giphy.com/media/mCwPEs7culiAICmPli/giphy.gif" width="600" height="400">
+
 ``` c++
 class Solution {
 public:
@@ -1878,7 +2064,7 @@ public:
 维护两个指针 $left$ 和 $right$，以及两个变量 $leftMax$ 和 $rightMax$，初始时 $left=0,right=n−1,leftMax=0,rightMax=0$。指针 $left$ 只会向右移动，指针 $right$ 只会向左移动，在移动指针的过程中维护两个变量 $leftMax$ 和 $rightMax$ 的值。
 当两个指针没有相遇时，进行如下操作：
 - 使用 $height[left]$ 和 $height[right]$ 的值更新 $leftMax$ 和 $rightMax$ 的值；
-- 如果 $height[left]<height[right]$，则必有 $leftMax<rightMax$，下标 $left 处能接的雨水量等于 $leftMax−height[left]$，将下标 $left$ 处能接的雨水量加到能接的雨水总量，然后将 $left$ 加 $1$（即向右移动一位）；
+- 如果 $height[left]<height[right]$，则必有 $leftMax<rightMax$，下标 $left$ 处能接的雨水量等于 $leftMax−height[left]$。$left$ 处能接的雨水量加到能接的雨水总量，然后将 $left$ 加 $1$（即向右移动一位）；
 - 如果 $height[left]≥height[right]$，则必有 $leftMax \ge rightMax$，下标 $right$ 处能接的雨水量等于 $rightMax−height[right]$，将下标 $right$ 处能接的雨水量加到能接的雨水总量，然后将 $right$ 减 $1$（即向左移动一位）。
 当两个指针相遇时，即可得到能接的雨水总量。
 <img src="https://media.giphy.com/media/eD7yeFW6dqbTqAsLIz/giphy.gif" width="600" height="400">
@@ -1907,7 +2093,8 @@ public:
 ## 字符串乘法
 ### 模拟竖式乘法
 从右往左遍历乘数，将乘数的每一位与被乘数相乘得到对应的结果，再将每次得到的结果累加。这道题中，被乘数是 $num1$，乘数是 $num2$。需要注意的是，$num2$ 除了最低位以外，其余的每一位的运算结果都需要补 $0$。
-<img src="https://assets.leetcode-cn.com/solution-static/43/sol1.png" width="600" height="400">
+<img src="https://assets.leetcode-cn.com/solution-static/43/sol1.png" width="700" height="400">
+
 ``` c++
 class Solution {
 public:
@@ -2027,7 +2214,7 @@ public:
 ### 贪心算法
 -动态规划的瓶颈在于对星号 $*$ 的处理方式：使用动态规划枚举所有的情况。由于星号是万能的，连续的多个星号和单个星号实际上是等价的。
 - 以 $p=*abcd*$ 为例，$p$ 可以匹配**所有包含子串 $abcd$ 的字符串**，，也就是说，我们只需要暴力地枚举字符串 $s$ 中的每个位置作为起始位置，并判断对应的子串是否为 $abcd$ 即可。
-- 如果 $p=∗ abcd∗efgh∗i ∗$ 呢？显然，$p$ 可以匹配所有依次出现子串$abcd$、$efgh$、$i$ 的字符串。因此，如果模式 $p$ 的形式为 $*~u_1*u_2*u_3~*\cdots*u_x~*$， 即字符串（可以为空）和星号交替出现，并且首尾字符均为星号，那么我们就可以设计出下面这个基于贪心的暴力匹配算法。`算法的本质是：`如果在字符串 $s$ 中首先找到 $u_1$，再找到 $u_2, u_3, \cdots, u_x$，那么 $s$ 就可以与模式 $p$ 匹配。
+- 如果 $p=∗ abcd∗efgh∗i ∗$ 呢？显然，$p$ 可以匹配所有依次出现子串$abcd$、$efgh$、$i$ 的字符串。因此，如果模式 $p$ 的形式为 $*~u_1*u_2*u_3~*\cdots*u_x~*$， 即字符串（可以为空）和星号交替出现，并且首尾字符均为星号，那么我们就可以设计出下面这个基于贪心的暴力匹配算法。**算法的本质是：如果在字符串 $s$ 中首先找到 $u_1$，再找到 $u_2, u_3, \cdots, u_x$，那么 $s$ 就可以与模式 $p$ 匹配**。
 - 如果模式 $p$ 的结尾字符不是星号，那么就必须与字符串 $s$ 的结尾字符匹配。那么我们不断地匹配 $s$ 和 $p$ 的结尾字符，直到 $p$ 为空或者 $p$ 的结尾字符是星号为止。在这个过程中，如果匹配失败，或者最后 $p$ 为空但 $s$ 不为空，那么需要返回 $False$。
 - 如果模式 $p$ 的开头字符不是星号，可以不断地匹配 $s$ 和 $p$ 的开头字符。
 ``` c++
@@ -2093,7 +2280,7 @@ public:
 ``` c++
 class Solution {
     public int jump(vector<int> nums) {
-        int position = nums.length - 1;
+        int position = nums.length() - 1;
         int steps = 0;
         while (position > 0) {
             for (int i = 0; i < position; i++) {
@@ -2110,9 +2297,9 @@ class Solution {
 ```
 - 时间复杂度：$O(n^2)$。有两层嵌套循环，在最坏的情况下，例如数组中的所有元素都是 $1$，因此会超时。
 ### 正向查找
-- 我们**贪心**地进行**正向查找**，每次找到可到达的最远位置，就可以在线性时间内得到最少的跳跃次数。
+- 我们**贪心**地进行**正向查找**，每次找到**可到达的最远位置**，就可以在**线性时间内**得到最少的跳跃次数。
 - 在具体的实现中，我们维护当前能够到达的最大下标位置，记为边界。我们从左到右遍历数组，到达边界时，更新边界并将跳跃次数增加 $1$。
-- 在遍历数组时，我们不访问最后一个元素，这是因为在访问最后一个元素之前，我们的边界一定大于等于最后一个位置，否则就无法跳到最后一个位置了。如果访问最后一个元素，在边界正好为最后一个位置的情况下，我们会增加一次**不必要的跳跃次数**，因此我们不必访问最后一个元素。
+- 在遍历数组时，我们不访问最后一个元素，这是因为**在访问最后一个元素之前，我们的边界一定大于等于最后一个位置，否则就无法跳到最后一个位置了**。如果访问最后一个元素，在边界正好为最后一个位置的情况下，我们会增加一次**不必要的跳跃次数**，因此我们不必访问最后一个元素。
 <img src="https://assets.leetcode-cn.com/solution-static/45/45_fig1.png" width="600" height="400">
 ``` c++
 class Solution {
@@ -2132,7 +2319,10 @@ public:
     }
 };
 ```
+- 时间复杂度：$O(n)$
+
 ## 全排列
+
 回溯法：一种通过探索所有可能的候选解来找出所有的解的算法。如果候选解被确认不是一个解（或者至少不是最后一个解），回溯算法会通过在上一步进行一些变化抛弃该解，即回溯并且再次尝试。
 ### 思路
 - 定义递归函数 $backtrack(first, output)$ 表示从左往右填到第 $first$ 个位置，当前排列为 $output$。 那么整个递归函数分为两个情况：
@@ -2181,7 +2371,7 @@ if (i > 0 && nums[i] == nums[i - 1] && !vis[i - 1]) {
 - 这个判断条件保证了对于重复数的集合，一定是从左往右逐个填入的。
 ### 分析
 - 画出树形结构如下：重点想象深度优先遍历在这棵树上执行的过程，哪些地方遍历下去一定会产生重复，这些地方的状态的特点是什么
-<img src="https://pic.leetcode-cn.com/1600386643-uhkGmW-image.png" width="800" height="500">
+<img src="https://pic.leetcode-cn.com/1600386643-uhkGmW-image.png" width="800" height="450">
 - 产生重复结点的地方，正是图中标注了「剪刀」，且被红色框框住的地方。
 - 在图中 ① 处，搜索的数也和上一次一样，但是上一次的 1 刚刚被撤销，正是因为刚被撤销，下面的搜索中还会使用到，因此会产生重复，剪掉的就应该是这样的分支。
 ``` c++
@@ -2313,7 +2503,7 @@ public:
     }
 };
 ```
-- 时间复杂度：$O(nk logk)$。其中 $n$ 是 $strs$ 中的字符串的数量，$k$ 是 $strs$ 中的字符串的的最大长度。
+- 时间复杂度：$O(nklogk)$。其中 $n$ 是 $strs$ 中的字符串的数量，$k$ 是 $strs$ 中的字符串的的最大长度。
 ### 计数
 由于互为字母异位词的两个字符串包含的字母相同，因此两个字符串中的相同字母出现的次数一定是相同的，故可以将每个字母出现的次数使用字符串表示，作为哈希表的键。
 由于字符串只包含小写字母，因此对于每个字符串，可以使用长度为 $26$ 的数组记录每个字母出现的次数。需要注意的是，在使用数组作为哈希表的键时，不同语言的支持程度不同，因此不同语言的实现方式也不同。
