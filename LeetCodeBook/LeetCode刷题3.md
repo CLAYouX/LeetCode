@@ -1157,5 +1157,180 @@ public:
 };
 ```
 
+## 不同子序列
 
+假设字符串 $s$ 和 $t$ 的长度分别为 $m$ 和 $n$。如果 $t$ 是 $s$ 的子序列，则 $s$ 的长度一定大于或等于 $t$ 的长度，即只有当 $m \ge n$ 时，$t$ 才可能是 $s$ 的子序列。如果 $m<n$，则 $t$ 一定不是 $s$ 的子序列，因此直接返回 $0$。
+
+创建二维数组 $\textit{dp}$，其中 $\textit{dp}[i][j]$ 表示在 $s[i:]$ 的子序列中 $t[j:]$ 出现的个数。
+
+> 上述表述中，$s[i:]$ 表示 $s$ 从下标 $i$ 到末尾的子字符串，$t[j:]$ 表示 $t$ 从下标 $j$ 到末尾的子字符串
+
+考虑边界情况：
+
+- 当 $j=n$ 时，$t[j:]$ 为空字符串，由于空字符串是任何字符串的子序列，因此对任意 $0 \le i \le m$，有 $\textit{dp}[i][n]=1$；
+- 当 $i=m$ 且 $j<n$ 时，$s[i:]$ 为空字符串，$t[j:]$ 为非空字符串，由于非空字符串不是空字符串的子序列，因此对任意 $0 \le j<n$，有 $\textit{dp}[m][j]=0$。
+
+当 $i<m$ 且 $j<n$ 时，考虑 $\textit{dp}[i][j]$ 的计算：
+
+- 当 $s[i]=t[j]$ 时，$\textit{dp}[i][j]$ 由两部分组成：
+
+  - 如果 $s[i]$ 和 $t[j]$ 匹配，则考虑 $t[j+1:]$ 作为 $s[i+1:]$ 的子序列，子序列数为 $\textit{dp}[i+1][j+1]$；
+  - 如果 $s[i]$ 不和 $t[j]$ 匹配，则考虑 $t[j:]$ 作为 $s[i+1:]$ 的子序列，子序列数为 $\textit{dp}[i+1][j]$。
+
+  因此，当 $s[i]=t[j]$ 时，有 $\textit{dp}[i][j]=\textit{dp}[i+1][j+1]+\textit{dp}[i+1][j]$[j]。
+
+- $当 s[i] \ne t[j]$ 时，$s[i]$ 不能和 $t[j]$ 匹配，因此只考虑 $t[j:]$ 作为 $s[i+1:]$ 的子序列，子序列数为 $\textit{dp}[i+1][j]$。
+
+  因此，当 $s[i] \ne t[j]$ 时，有 $\textit{dp}[i][j]=\textit{dp}[i+1][j]$[j]。
+
+由此，可以得到状态转移方程：
+$$
+dp[i][j] = \begin{cases}dp[i+1][j+1]+dp[i+1][j], & s[i]==t[j] \\ dp[i+1][j] & s[i]\neq[j] \end{cases}
+$$
+最终计算得到 $\textit{dp}[0][0]$[0] 即为在 $s$ 的子序列中 $t$ 出现的个数。
+
+``` c++
+class Solution {
+public:
+    int numDistinct(string s, string t) {
+        int m = s.length(), n = t.length();
+        if (m < n) {
+            return 0;
+        }
+        vector<vector<long>> dp(m + 1, vector<long>(n + 1));
+        for (int i = 0; i <= m; i++) {
+            dp[i][n] = 1;
+        }
+        for (int i = m - 1; i >= 0; i--) {
+            char sChar = s.at(i);
+            for (int j = n - 1; j >= 0; j--) {
+                char tChar = t.at(j);
+                if (sChar == tChar) {
+                    dp[i][j] = dp[i + 1][j + 1] + dp[i + 1][j];
+                } else {
+                    dp[i][j] = dp[i + 1][j];
+                }
+            }
+        }
+        return dp[0][0];
+    }
+};
+```
+
+### 注意
+
+上述代码无法通过测试，中间结果数可能超过了 $long \ long$ 的表示范围，因此，需要添加预处理代码：
+
+``` c++
+unordered_map<char, int> um;
+for (auto &c : s)
+    ++um[c];
+
+for (auto &c : t) {
+    if (um.find(c) == um.end() || um[c] == 0)
+        return 0;
+    else
+        --um[c];
+}
+```
+
+## 填充每个节点的下一个右侧节点指针
+
+### 层次遍历
+
+### 使用已建立的 $next$ 指针
+
+一棵树中，存在两种类型的 $next$ 指针：
+
+1. 第一种情况是连接同一个父节点的两个子节点。它们可以通过同一个节点直接访问到，因此执行下面操作即可完成连接。
+
+   ``` c++
+   node.left.next = node.right;
+   ```
+
+2. 第二种情况在不同父亲的子节点之间建立连接，这种情况不能直接连接。
+
+   >第 $N$ 层节点之间建立 $\text{next}$ 指针后，再建立第 $N+1$ 层节点的 $\text{next}$ 指针。可以通过 $\text{next}$ 指针访问同一层的所有节点，因此可以使用第 $N$ 层的 $\text{next}$ 指针，为第 $N+1$ 层节点建立 $\text{next}$ 指针。
+   >
+
+``` c++
+class Solution {
+    public Node connect(Node root) {
+        if (root == null) {
+            return root;
+        }
+        
+        // 从根节点开始
+        Node leftmost = root;
+        
+        while (leftmost.left != null) {
+            
+            // 遍历这一层节点组织成的链表，为下一层的节点更新 next 指针
+            Node head = leftmost;
+            
+            while (head != null) {
+                
+                // CONNECTION 1
+                head.left.next = head.right;
+                
+                // CONNECTION 2
+                if (head.next != null) {
+                    head.right.next = head.next.left;
+                }
+                
+                // 指针向后移动
+                head = head.next;
+            }
+            
+            // 去下一层的最左的节点
+            leftmost = leftmost.left;
+        }
+        
+        return root;
+    }
+}
+```
+
+## 填充每个节点的下一个右侧节点指针2
+
+### 层次遍历
+
+### 使用已建立的 $next$ 指针
+
+``` c++
+class Solution {
+public:
+    void handle(Node* &last, Node* &p, Node* &nextStart) {
+        if (last) {
+            last->next = p;
+        } 
+        if (!nextStart) {
+            nextStart = p;
+        }
+        last = p;
+    }
+
+    Node* connect(Node* root) {
+        if (!root) {
+            return nullptr;
+        }
+        Node *start = root;
+        while (start) {
+            Node *last = nullptr, *nextStart = nullptr;
+            for (Node *p = start; p != nullptr; p = p->next) {
+                if (p->left) {
+                    handle(last, p->left, nextStart);
+                }
+                if (p->right) {
+                    handle(last, p->right, nextStart);
+                }
+            }
+            start = nextStart;
+        }
+        return root;
+    }
+};
+```
+
+## 三角形的最小路径和
 
