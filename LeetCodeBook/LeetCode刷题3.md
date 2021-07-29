@@ -1334,3 +1334,508 @@ public:
 
 ## 三角形的最小路径和
 
+### 动态规划
+
+用 $f[i][j]$ 表示从三角形顶部走到位置 $(i, j)$ 的最小路径和。这里的位置 $(i, j)$ 指的是三角形中第 $i$ 行第 $j$ 列（均从 $0$ 开始编号）的位置。
+
+由于每一步只能移动到下一行「相邻的节点」上，因此要想走到位置 $(i, j)$，上一步就只能在位置 $(i - 1, j - 1)$​ 或者位置 $(i - 1, j)$。我们在这两个位置中选择一个路径和较小的来进行转移，状态转移方程为：
+
+$$
+f[i][j]=min(f[i-1][j-1],f[i-1][j])+c[i][j]
+$$
+其中 $c[i][j]$ 表示位置 $(i,j)$ 对应的元素值。
+
+注意第 $i$ 行有 $i+1$ 个元素，它们对应的 $j$ 的范围为 $[0, i]$。当 $j=0$ 或 $j=i$ 时，上述状态转移方程中有一些项是没有意义的。例如当 $j=0$ 时，$f[i-1][j-1]$ 没有意义，因此状态转移方程为：
+
+$$
+f[i][0] = f[i-1][0]+c[i][0]
+$$
+即当我们在第 $i$ 行的最左侧时，我们只能从第 $i-1$ 行的最左侧移动过来。当 $j=i$ 时，$f[i-1][j]$ 没有意义，因此状态转移方程为：
+
+$$
+f[i][i] = f[i-1][i-1]+c[i][i]
+$$
+即当我们在第 $i$ 行的最右侧时，我们只能从第 $i-1$ 行的最右侧移动过来。
+
+最终的答案即为 $f[n-1][0]$到 $f[n-1][n-1]$ 中的最小值，其中 $n$ 是三角形的行数。
+
+``` c++
+class Solution {
+public:
+    int minimumTotal(vector<vector<int>>& triangle) {
+        int n = triangle.size();
+        vector<vector<int>> f(n, vector<int>(n));
+        f[0][0] = triangle[0][0];
+        for (int i = 1; i < n; ++i) {
+            f[i][0] = f[i - 1][0] + triangle[i][0];
+            for (int j = 1; j < i; ++j) {
+                f[i][j] = min(f[i - 1][j - 1], f[i - 1][j]) + triangle[i][j];
+            }
+            f[i][i] = f[i - 1][i - 1] + triangle[i][i];
+        }
+        return *min_element(f[n - 1].begin(), f[n - 1].end());
+    }
+};
+```
+
+### 动态规划+空间优化
+
+方法一中的状态转移方程为：
+$$
+f[i][j]=\begin{cases} f[i][0]=f[i-1][0]+c[i][0], & j==0 \\ 
+					  f[i][i]=f[i-1][i-1]+c[i][i], &j==i \\
+					  min(f[i-1][j-1], f[i-1][j])+c[i][j] & otherwise \end{cases}
+$$
+可以发现，$f[i][j]$ 只与 $f[i-1][..]$ 有关，而与 $f[i-2][..]$ 及之前的状态无关，因此我们不必存储这些无关的状态。具体地，我们使用两个长度为 $n$ 的一维数组进行转移，将 $i$ 根据奇偶性映射到其中一个一维数组，那么 $i-1$ 就映射到了另一个一维数组。这样我们使用这两个一维数组，交替地进行状态转移。
+
+``` c++
+class Solution {
+public:
+    int minimumTotal(vector<vector<int>>& triangle) {
+        int n = triangle.size();
+        vector<vector<int>> f(2, vector<int>(n));
+        f[0][0] = triangle[0][0];
+        for (int i = 1; i < n; ++i) {
+            int curr = i % 2;
+            int prev = 1 - curr;
+            f[curr][0] = f[prev][0] + triangle[i][0];
+            for (int j = 1; j < i; ++j) {
+                f[curr][j] = min(f[prev][j - 1], f[prev][j]) + triangle[i][j];
+            }
+            f[curr][i] = f[prev][i - 1] + triangle[i][i];
+        }
+        return *min_element(f[(n - 1) % 2].begin(), f[(n - 1) % 2].end());
+    }
+};
+```
+
+上述方法的空间复杂度为 $O(n)$，使用了 $2n$​ 的空间存储状态。我们还可以继续进行优化：
+
+从 $i$ 到 $0$ 递减地枚举 $j$，这样我们只需要一个长度为 $n$ 的一维数组 $f$​，就可以完成状态转移。
+
+>当我们在计算位置 $(i, j)$ 时，$f[j+1]$ 到 $f[i]$ 已经是第 $i$ 行的值，而 $f[0]$ 到 $f[j]$仍然是第 $i-1$​ 行的值。此时我们直接通过
+
+$$
+f[i] = min(f[j-1],f[j])+c[i][j]
+$$
+
+>进行转移，恰好就是在 $(i-1, j-1)$ 和 $(i-1, j)$​ 中进行选择。
+
+``` c++
+class Solution {
+public:
+    int minimumTotal(vector<vector<int>>& triangle) {
+        int n = triangle.size();
+        vector<int> f(n);
+        f[0] = triangle[0][0];
+        for (int i = 1; i < n; ++i) {
+            f[i] = f[i - 1] + triangle[i][i];
+            for (int j = i - 1; j > 0; --j) {
+                f[j] = min(f[j - 1], f[j]) + triangle[i][j];
+            }
+            f[0] += triangle[i][0];
+        }
+        return *min_element(f.begin(), f.end());
+    }
+};
+```
+
+## 买卖股票的最佳时机1
+
+### 题目
+
+给定一个数组 $prices$，它的第 $i$ 个元素 $prices[i]$ 表示一支给定股票第 $i$ 天的价格。
+
+你只能选择 **某一天** 买入这只股票，并选择在 **未来的某一个不同的日子** 卖出该股票。设计一个算法来计算你所能获取的最大利润。
+
+返回你可以从这笔交易中获取的最大利润。如果你不能获取任何利润，返回 0 。
+
+### 一次遍历
+
+遍历价格数组一遍，记录历史最低点，然后在每一天考虑这么一个问题：如果我是在历史最低点买进的，那么我今天卖出能赚多少钱？当考虑完所有天数之时，我们就得到了最好的答案。
+
+``` c++
+class Solution {
+public:
+    int maxProfit(vector<int>& prices) {
+        int inf = 1e9;
+        int minprice = inf, maxprofit = 0;
+        for (int price: prices) {
+            maxprofit = max(maxprofit, price - minprice);
+            minprice = min(price, minprice);
+        }
+        return maxprofit;
+    }
+};
+```
+
+## 买卖股票的最佳时机2
+
+### 题目
+
+给定一个数组 $prices$，其中 $prices[i]$ 是一支给定股票第 $i$ 天的价格。
+
+设计一个算法来计算你所能获取的最大利润。你可以 **尽可能地完成更多的交易（多次买卖一支股票）**。
+
+注意：你不能同时参与多笔交易（你必须在再次购买前出售掉之前的股票）。
+
+### 动态规划
+
+考虑到「不能同时参与多笔交易」，因此每天交易结束后只可能存在手里有一支股票或者没有股票的状态。
+
+定义状态 $\textit{dp}[i][0]$ 表示第 $i$ 天交易完后手里没有股票的最大利润，$\textit{dp}[i][1]$ 表示第 $i$ 天交易完后手里持有一支股票的最大利润（$i$ 从 $0$ 开始）。
+
+考虑 $\textit{dp}[i][0]$​ 的转移方程，如果这一天交易完后手里没有股票，那么可能的转移状态为前一天已经没有股票，即 $\textit{dp}[i-1][0]$，或者前一天结束的时候手里持有一支股票，即 $\textit{dp}[i-1][1]$，这时候我们要将其卖出，并获得 $\textit{prices}[i]$​ 的收益。因此为了收益最大化，我们列出如下的转移方程：
+
+$$
+dp[i][0]=max(dp[i-1][0],dp[i-1][1]+prices[i])
+$$
+再来考虑 $\textit{dp}[i][1]$，按照同样的方式考虑转移状态，那么可能的转移状态为前一天已经持有一支股票，即 $\textit{dp}[i-1][1]$，或者前一天结束时还没有股票，即 $\textit{dp}[i-1][0]$，这时候我们要将其买入，并减少 $\textit{prices}[i]$ 的收益。可以列出如下的转移方程：
+
+$$
+dp[i][1] = max(dp[i-1][1], dp[i-1][0]-prices[i])
+$$
+对于初始状态，根据状态定义我们可以知道第 $0$ 天交易结束的时候 $\textit{dp}[0][0]=0$，$\textit{dp}[0][1]=-\textit{prices}[0]$。
+
+``` c++
+class Solution {
+public:
+    int maxProfit(vector<int>& prices) {
+        int n = prices.size();
+        int dp[n][2];
+        dp[0][0] = 0, dp[0][1] = -prices[0];
+        for (int i = 1; i < n; ++i) {
+            dp[i][0] = max(dp[i - 1][0], dp[i - 1][1] + prices[i]);
+            dp[i][1] = max(dp[i - 1][1], dp[i - 1][0] - prices[i]);
+        }
+        return dp[n - 1][0];
+    }
+};
+```
+
+#### 空间优化
+
+注意到上面的状态转移方程中，每一天的状态只与前一天的状态有关，而与更早的状态都无关，因此我们不必存储这些无关的状态，只需要将 $\textit{dp}[i-1][0]$ 和 $\textit{dp}[i-1][1]$ 存放在两个变量中，通过它们计算出 $\textit{dp}[i][0]$ 和 $\textit{dp}[i][1]$ 并存回对应的变量，以便于第 $i+1$ 天的状态转移即可。
+
+``` c++
+class Solution {
+public:
+    int maxProfit(vector<int>& prices) {
+        int n = prices.size();
+        int dp0 = 0, dp1 = -prices[0];
+        for (int i = 1; i < n; ++i) {
+            int newDp0 = max(dp0, dp1 + prices[i]);
+            int newDp1 = max(dp1, dp0 - prices[i]);
+            dp0 = newDp0;
+            dp1 = newDp1;
+        }
+        return dp0;
+    }
+};
+```
+
+### 贪心
+
+由于股票的购买没有限制，因此整个问题等价于寻找 $x$ 个不相交的区间 $(l_i,r_i]$​ 使得如下的等式最大化：
+$$
+\sum_{i=1}^{x}a[r_i]-a[l_i]
+$$
+其中 $l_i$ 表示在第 $l_i$ 天买入，$r_i$ 表示在第 $r_i$​ 天卖出。
+
+同时我们注意到对于 $(l_i,r_i]$ 这一个区间贡献的价值 $a[r_i]-a[l_i]$，其实等价于 $(l_i,l_i+1],(l_i+1,l_i+2],\ldots,(r_i-1,r_i]$ 这若干个区间长度为 $1$​ 的区间的价值和，即：
+$$
+a[r_i]-a[l_i]=(a[r_i]-a[r_{i-1}])+(a[r_{i-1}]-a[r_{i-2}])+\cdots+(a[l_{i+1}]-a[l_i])
+$$
+因此问题可以简化为找 $x$ 个长度为 11 的区间 $(l_i,l_i+1]$ 使得 $\sum_{i=1}^{x} a[l_i+1]-a[l_i]$ 价值最大化。
+
+贪心的角度考虑我们每次选择贡献大于 $0$​ 的区间即能使得答案最大化，因此最后答案为:
+$$
+ans=\sum_{i=1}^{x}max\{0, a[i]-a[i-1]\}
+$$
+其中 $n$ 为数组的长度。
+
+``` c++
+class Solution {
+public:
+    int maxProfit(vector<int>& prices) {   
+        int ans = 0;
+        int n = prices.size();
+        for (int i = 1; i < n; ++i) {
+            ans += max(0, prices[i] - prices[i - 1]);
+        }
+        return ans;
+    }
+};
+```
+
+## 买卖股票的最佳时机3
+
+### 题目
+
+给定一个数组，它的第 $i$ 个元素是一支给定的股票在第 $i$ 天的价格。
+
+设计一个算法来计算你所能获取的最大利润。你 **最多可以完成 两笔 交易**。
+
+注意：你不能同时参与多笔交易（你必须在再次购买前出售掉之前的股票）。
+
+### 动态规划
+
+由于我们最多可以完成两笔交易，因此在任意一天结束之后，我们会处于以下五个状态中的一种：
+
+- 未进行过任何操作；
+
+- 只进行过一次买操作；
+
+- 进行了一次买操作和一次卖操作，即完成了一笔交易；
+
+- 在完成了一笔交易的前提下，进行了第二次买操作；
+
+- 完成了全部两笔交易。
+
+由于第一个状态的利润显然为 $0$，因此我们可以不用将其记录。对于剩下的四个状态，我们分别将它们的最大利润记为 $\textit{buy}_1$，$\textit{sell}_1$，$\textit{buy}_2$ 以及 $\textit{sell}_2$。
+
+我们可以根据前两题写出状态转移方程：
+$$
+\begin{cases} buy_1=max\{buy_1,-prices[i]\} \\
+              sell_1=max\{sell_1, buy_1+prices[i]\} \\
+              buy_2=max\{buy_2, sell_1-prices[i]\} \\ 
+              sell_2=max\{sell_2, buy_2+prices[i] \}\end{cases}
+$$
+
+``` c++
+class Solution {
+public:
+    int maxProfit(vector<int>& prices) {
+        int n = prices.size();
+        int buy1 = -prices[0], sell1 = 0;
+        int buy2 = -prices[0], sell2 = 0;
+        for (int i = 1; i < n; ++i) {
+            buy1 = max(buy1, -prices[i]);
+            sell1 = max(sell1, buy1 + prices[i]);
+            buy2 = max(buy2, sell1 - prices[i]);
+            sell2 = max(sell2, buy2 + prices[i]);
+        }
+        return sell2;
+    }
+};
+```
+
+## 最长连续序列
+
+### 题目
+
+给定一个未排序的整数数组 $nums$ ，找出数字连续的最长序列（不要求序列元素在原数组中连续）的长度。
+
+请你设计并实现时间复杂度为 $O(n)$ 的算法解决此问题。
+
+### 哈希
+
+我们考虑枚举数组中的每个数 $x$，考虑以其为起点，不断尝试匹配 $x+1, x+2, \cdots$ 是否存在，假设最长匹配到了 $x+y$，那么以 $x$ 为起点的最长连续序列即为 $x, x+1, x+2, \cdots, x+y$，其长度为 $y+1$，我们不断枚举并更新答案即可。
+
+对于匹配的过程，暴力的方法是 $O(n)$ 遍历数组去看是否存在这个数，但其实更高效的方法是用一个哈希表存储数组中的数，这样查看一个数是否存在即能优化至 $O(1)$ 的时间复杂度。
+
+仅仅是这样我们的算法时间复杂度最坏情况下还是会达到 $O(n^2)$（即外层需要枚举 $O(n)$ 个数，内层需要暴力匹配 $O(n)$ 次），无法满足题目的要求。但仔细分析这个过程，我们会发现其中执行了很多不必要的枚举，如果已知有一个 $x, x+1, x+2, \cdots, x+y$ 的连续序列，而我们却重新从 $x+1$，$x+2$ 或者是 $x+y$ 处开始尝试匹配，那么得到的结果肯定不会优于枚举 $x$ 为起点的答案，因此我们在外层循环的时候碰到这种情况跳过即可。
+
+那么怎么判断是否跳过呢？由于我们要枚举的数 $x$ 一定是在数组中不存在前驱数 $x-1$ 的，不然按照上面的分析我们会从 $x-1$ 开始尝试匹配，因此我们每次在哈希表中检查是否存在 $x-1$​ 即能判断是否需要跳过了。
+
+增加了判断跳过的逻辑之后，时间复杂度是多少呢？外层循环需要 $O(n)$​ 的时间复杂度，只有当一个数是连续序列的第一个数的情况下才会进入内层循环，然后在内层循环中匹配连续序列中的数，因此数组中的每个数只会进入内层循环一次。根据上述分析可知，总时间复杂度为 $O(n)$，符合题目要求。
+
+``` c++
+class Solution {
+public:
+    int longestConsecutive(vector<int>& nums) {
+        unordered_set<int> num_set;
+        for (const int& num : nums) {
+            num_set.insert(num);
+        }
+
+        int longestStreak = 0;
+
+        for (const int& num : num_set) {
+            if (!num_set.count(num - 1)) {
+                int currentNum = num;
+                int currentStreak = 1;
+
+                while (num_set.count(currentNum + 1)) {
+                    currentNum += 1;
+                    currentStreak += 1;
+                }
+
+                longestStreak = max(longestStreak, currentStreak);
+            }
+        }
+
+        return longestStreak;           
+    }
+};
+```
+
+### 并查集
+
+1. 初始化的时候先把数组里每个元素初始化为他的下一个数；
+2. 并的时候找它能到达的最远的数字就可以了
+
+``` c++
+class Solution {
+public:
+    unordered_map<int,int> a;
+    int find(int x){
+        return a.count(x)? a[x]=find(a[x]) : x;
+    }
+    int longestConsecutive(vector<int>& nums) {
+        for(auto i:nums)
+            a[i] = i+1;
+        int ans=0;
+        for(auto i:nums){
+            int y = find(i+1);
+            ans = max(ans,y-i);
+        }
+        return ans;
+    }
+};
+```
+
+## 分割回文串1
+
+### 回溯+动态规划预处理
+
+当我们在判断 $s[i..j]$ 是否为回文串时，常规的方法是使用双指针分别指向 $i$ 和 $j$，每次判断两个指针指向的字符是否相同，直到两个指针相遇。然而这种方法会产生重复计算
+
+因此，我们可以将字符串 $s$ 的每个子串 $s[i..j]$​ 是否为回文串预处理出来，使用动态规划即可。
+
+预处理完成之后，我们只需要 $O(1)$ 的时间就可以判断任意 $s[i..j]$ 是否为回文串了。
+
+``` c++
+class Solution {
+private:
+    vector<vector<int>> f;
+    vector<vector<string>> ret;
+    vector<string> ans;
+    int n;
+
+public:
+    void dfs(const string& s, int i) {
+        if (i == n) {
+            ret.push_back(ans);
+            return;
+        }
+        for (int j = i; j < n; ++j) {
+            if (f[i][j]) {
+                ans.push_back(s.substr(i, j - i + 1));
+                dfs(s, j + 1);
+                ans.pop_back();
+            }
+        }
+    }
+
+    vector<vector<string>> partition(string s) {
+        n = s.size();
+        f.assign(n, vector<int>(n, true));
+
+        for (int i = n - 1; i >= 0; --i) {
+            for (int j = i + 1; j < n; ++j) {
+                f[i][j] = (s[i] == s[j]) && f[i + 1][j - 1];
+            }
+        }
+
+        dfs(s, 0);
+        return ret;
+    }
+};
+```
+
+### 回溯+记忆化搜索
+
+方法一中的动态规划预处理计算出了任意的 $s[i..j]$ 是否为回文串，我们也可以将这一步改为记忆化搜索。
+
+``` c++
+class Solution {
+private:
+    vector<vector<int>> f;
+    vector<vector<string>> ret;
+    vector<string> ans;
+    int n;
+
+public:
+    void dfs(const string& s, int i) {
+        if (i == n) {
+            ret.push_back(ans);
+            return;
+        }
+        for (int j = i; j < n; ++j) {
+            if (isPalindrome(s, i, j) == 1) {
+                ans.push_back(s.substr(i, j - i + 1));
+                dfs(s, j + 1);
+                ans.pop_back();
+            }
+        }
+    }
+
+    // 记忆化搜索中，f[i][j] = 0 表示未搜索，1 表示是回文串，-1 表示不是回文串
+    int isPalindrome(const string& s, int i, int j) {
+        if (f[i][j]) {
+            return f[i][j];
+        }
+        if (i >= j) {
+            return f[i][j] = 1;
+        }
+        return f[i][j] = (s[i] == s[j] ? isPalindrome(s, i + 1, j - 1) : -1);
+    }
+
+    vector<vector<string>> partition(string s) {
+        n = s.size();
+        f.assign(n, vector<int>(n));
+
+        dfs(s, 0);
+        return ret;
+    }
+};
+```
+
+## 分割回文串2
+
+### 动态规划
+
+设 $f[i]$ 表示字符串的前缀 $s[0..i]$ 的最少分割次数。要想得出 $f[i]$ 的值，我们可以考虑枚举 $s[0..i]$ 分割出的最后一个回文串，这样我们就可以写出状态转移方程：
+
+$$
+f[i] = \min_{0 \leq j < i} \{ f[j] \} + 1
+$$
+其中 $s[j+1, i]$ 是一个回文串。即我们枚举最后一个回文串的起始位置 $j+1$，保证 $s[j+1..i]$ 是一个回文串，那么 $f[i]$ 就可以从 $f[j]$ 转移而来，附加 $1$ 次额外的分割次数。
+
+我们可以使用与上一题中相同的预处理方法，将字符串 $s$​ 的每个子串是否为回文串预先计算出来。
+
+这样一来，我们只需要 $O(1)$ 的时间就可以判断任意 $s[i..j]$ 是否为回文串了。通过动态规划计算出所有的 $f$ 值之后，最终的答案即为 $f[n-1]$，其中 $n$ 是字符串 $s$ 的长度。
+
+``` c++
+class Solution {
+public:
+    int minCut(string s) {
+        int n = s.size();
+        vector<vector<int>> g(n, vector<int>(n, true));
+
+        for (int i = n - 1; i >= 0; --i) {
+            for (int j = i + 1; j < n; ++j) {
+                g[i][j] = (s[i] == s[j]) && g[i + 1][j - 1];
+            }
+        }
+
+        vector<int> f(n, INT_MAX);
+        for (int i = 0; i < n; ++i) {
+            if (g[0][i]) {
+                f[i] = 0;
+            }
+            else {
+                for (int j = 0; j < i; ++j) {
+                    if (g[j + 1][i]) {
+                        f[i] = min(f[i], f[j] + 1);
+                    }
+                }
+            }
+        }
+
+        return f[n - 1];
+    }
+};
+```
+
