@@ -1,5 +1,3 @@
-	LeetCode刷题
-
  [TOC]
 ## 二叉树的中序遍历
 ### Morris遍历算法（假设当前遍历到的节点是x）
@@ -953,7 +951,7 @@ public:
 ### 双指针
 我们可以使用两个指针 *first* 和 *second* 同时对链表进行遍历，并且 *first* 比 *second* 超前 $n$ 个节点。当 *firs*t 遍历到链表的末尾时，*second* 就恰好处于倒数第 $n$ 个节点。
 如果我们能够得到的是倒数第 $n$ 个节点的前驱节点而不是倒数第 $n$ 个节点的话，删除操作会更加方便。因此我们可以考虑在初始时将 *second* 指向哑节点，其余的操作步骤不变。这样一来，当 *first* 遍历到链表的末尾时，*second* 的下一个节点就是我们需要删除的节点。示意图如下：
-<img src="https://assets.leetcode-cn.com/solution-static/19/p3.png" width="600" height="400" align="center">
+<img src="https://assets.leetcode-cn.com/solution-static/19/p3.png" width="600" height="600" align="center">
 ``` c++
 class Solution {
 public:
