@@ -1286,6 +1286,36 @@ public:
 };
 ```
 
+## 删除有序数组中的重复项
+
+### 双指针
+
+定义两个指针 $\textit{fast}$ 和 $\textit{slow}$ 分别为快指针和慢指针，快指针表示遍历数组到达的下标位置，慢指针表示下一个不同元素要填入的下标位置，初始时两个指针都指向下标 $1$。
+
+假设数组 $\textit{nums}$ 的长度为 $n$。将快指针 $\textit{fast}$ 依次遍历从 $1$ 到 $n-1$ 的每个位置，对于每个位置，如果 $\textit{nums}[\textit{fast}] \ne \textit{nums}[\textit{fast}-1]$，说明 $\textit{nums}[\textit{fast}]nums[fast] 和之前的元素都不同，因此将 \textit{nums}[\textit{fast}]$ 的值复制到 $\textit{nums}[\textit{slow}]$，然后将 $\textit{slow}$ 的值加 $1$，即指向下一个位置。
+
+遍历结束之后，从 $\textit{nums}[0]$ 到 $\textit{nums}[\textit{slow}-1]$ 的每个元素都不相同且包含原数组中的每个不同的元素，因此新的长度即为 $\textit{slow}$，返回 $\textit{slow}$ 即可。
+
+``` c++
+class Solution {
+    public int removeDuplicates(int[] nums) {
+        int n = nums.length;
+        if (n == 0) {
+            return 0;
+        }
+        int fast = 1, slow = 1;
+        while (fast < n) {
+            if (nums[fast] != nums[fast - 1]) {
+                nums[slow] = nums[fast];
+                ++slow;
+            }
+            ++fast;
+        }
+        return slow;
+    }
+}
+```
+
 ## 移除元素
 
 ### 双指针
@@ -1350,7 +1380,39 @@ public:
 
 ### KMP
 
-
+``` c++
+class Solution {
+public:
+    int strStr(string haystack, string needle) {
+        int n = haystack.size(), m = needle.size();
+        if (m == 0) {
+            return 0;
+        }
+        vector<int> pi(m);
+        for (int i = 1, j = 0; i < m; i++) {
+            while (j > 0 && needle[i] != needle[j]) {
+                j = pi[j - 1];
+            }
+            if (needle[i] == needle[j]) {
+                j++;
+            }
+            pi[i] = j;
+        }
+        for (int i = 0, j = 0; i < n; i++) {
+            while (j > 0 && haystack[i] != needle[j]) {
+                j = pi[j - 1];
+            }
+            if (haystack[i] == needle[j]) {
+                j++;
+            }
+            if (j == m) {
+                return i - m + 1;
+            }
+        }
+        return -1;
+    }
+};
+```
 
 ## 整数除法
 
@@ -1534,7 +1596,7 @@ public:
 ## 最长有效括号
 ### 动态规划
 定义 $dp[i]$ 表示以下标 $i$ 字符结尾的最长有效括号的长度。我们将 $dp$ 数组全部初始化为 $0$ 。显然有效的子串一定以 $)$ 结尾，因此我们可以知道以 $($ 结尾的子串对应的 $dp$ 值必定为 $0$ ，我们只需要求解 $)$ 在 $dp$ 数组中对应位置的值。从前往后遍历字符串求解 \textit{dp}dp 值，我们每两个字符检查一次：
-1. $s[i]=)$ 且 $s[i - 1] = ($，也就是字符串形如 $“……()”$，我们可以推出：
+1. $s[i]=)$ 且 $s[i - 1] = ($，也就是字符串形如 $……()$，我们可以推出：
 $$
 dp[i] = dp[i-2]+2
 $$
@@ -1788,7 +1850,71 @@ public:
     }
 };
 ```
+## 解数独
+
+### 递归
+
+首先对整个数独数组进行遍历，当我们遍历到第 $i$ 行第 $j$ 列的位置：
+
+- 如果该位置是一个空白格，那么我们将其加入一个用来存储空白格位置的列表中，方便后续的递归操作；
+- 如果该位置是一个数字 $x$，那么我们需要将 $\textit{line}[i][x-1]$，$\textit{column}[j][x-1]$ 以及 $\textit{block}[\lfloor i/3 \rfloor][\lfloor j/3 \rfloor][x-1]$ 均置为 $\text{True}$。
+
+当我们结束了遍历过程之后，就可以开始递归枚举。当递归到第 $i$ 行第 $j$ 列的位置时，我们枚举填入的数字 $x$。根据题目的要求，数字 $x$ 不能和当前行、列、九宫格中已经填入的数字相同，因此 $\textit{line}[i][x-1]$，$\textit{column}[j][x-1]$ 以及 $\textit{block}[\lfloor i/3 \rfloor][\lfloor j/3 \rfloor][x-1]$ 必须均为 $\text{False}$。
+
+当我们填入了数字 $x$ 之后，我们要将上述的三个值都置为 $\text{True}$，并且继续对下一个空白格位置进行递归。在回溯到当前递归层时，我们还要将上述的三个值重新置为 $\text{False}$。
+
+``` c++
+class Solution {
+private:
+    bool line[9][9];
+    bool column[9][9];
+    bool block[3][3][9];
+    bool valid;
+    vector<pair<int, int>> spaces;
+
+public:
+    void dfs(vector<vector<char>>& board, int pos) {
+        if (pos == spaces.size()) {
+            valid = true;
+            return;
+        }
+
+        auto [i, j] = spaces[pos];
+        for (int digit = 0; digit < 9 && !valid; ++digit) {
+            if (!line[i][digit] && !column[j][digit] && !block[i / 3][j / 3][digit]) {
+                line[i][digit] = column[j][digit] = block[i / 3][j / 3][digit] = true;
+                board[i][j] = digit + '0' + 1;
+                dfs(board, pos + 1);
+                line[i][digit] = column[j][digit] = block[i / 3][j / 3][digit] = false;
+            }
+        }
+    }
+
+    void solveSudoku(vector<vector<char>>& board) {
+        memset(line, false, sizeof(line));
+        memset(column, false, sizeof(column));
+        memset(block, false, sizeof(block));
+        valid = false;
+
+        for (int i = 0; i < 9; ++i) {
+            for (int j = 0; j < 9; ++j) {
+                if (board[i][j] == '.') {
+                    spaces.emplace_back(i, j);
+                }
+                else {
+                    int digit = board[i][j] - '0' - 1;
+                    line[i][digit] = column[j][digit] = block[i / 3][j / 3][digit] = true;
+                }
+            }
+        }
+
+        dfs(board, 0);
+    }
+};
+```
+
 ## 组合总和——搜索回溯
+
 对于这类寻找所有可行解的题，我们都可以尝试用**搜索回溯**的方法来解决。
 ### 思路
 定义递归函数 $dfs(target, combine, idx)$ 表示当前在 $candidates$ 数组的第 $idx$ 位，还剩 $target$ 要组合，已经组合的列表为 $combine$。递归的终止条件为 $target <= 0$ 或者 $candidates$ 数组被全部用完。那么在当前的函数中，每次我们可以选择跳过不用第 $idx$ 个数，即执行 $dfs(target, combine, idx + 1)$。也可以选择使用第 $idx$ 个数，即执行 $dfs(target - candidates[idx], combine, idx)$，注意到每个数字可以被无限制重复选取，因此搜索的下标仍为 $idx$。
@@ -2152,7 +2278,53 @@ public:
     }
 };
 ```
+### 做乘法
+
+令 $m$ 和 $n$ 分别表示 $\textit{num}_1$ 和 $\textit{num}_2$ 的长度，并且它们均不为 $0$，则 $\textit{num}_1$ 和 $\textit{num}_2$ 的乘积的长度为 $m+n-1$ 或 $m+n$。简单证明如下：
+
+- 如果 $\textit{num}_1$ 和 $\textit{num}_2$ 都取最小值，则 $\textit{num}_1=10^{m-1}$，$\textit{num2}=10^{n-1}$，$\textit{num}_1 \times \textit{num}_2=10^{m+n-2}$，乘积的长度为 $m+n-1$；
+- 如果 $\textit{num}_1$ 和 $\textit{num}_2$ 都取最大值，则 $\textit{num}_1=10^m-1$，$\textit{num}_2=10^n-1$，$\textit{num}_1 \times \textit{num}_2=10^{m+n}-10^m-10^n+1$，乘积显然小于 $10^{m+n}$ 且大于 $10^{m+n-1}$，因此乘积的长度为 $m+n$。
+
+由于 $\textit{num}_1$ 和 $\textit{num}_2$ 的乘积的最大长度为 $m+n$，因此创建长度为 $m+n$ 的数组 $\textit{ansArr}$ 用于存储乘积。对于任意 $0 \le i < m$ 和 $0 \le j < n$，$\textit{num}_1[i] \times \textit{num}_2[j]$ 的结果位于 $\textit{ansArr}[i+j+1]$，如果 $\textit{ansArr}[i+j+1] \ge 10$，则将进位部分加到 $\textit{ansArr}[i+j]$。
+
+最后，将数组 $\textit{ansArr}$ 转成字符串，如果最高位是 $0$ 则舍弃最高位：
+
+``` c++
+class Solution {
+public:
+    string multiply(string num1, string num2) {
+        if (num1 == "0" || num2 == "0") {
+            return "0";
+        }
+        int m = num1.size(), n = num2.size();
+        auto ansArr = vector<int>(m + n);
+        for (int i = m - 1; i >= 0; i--) {
+            int x = num1.at(i) - '0';
+            for (int j = n - 1; j >= 0; j--) {
+                int y = num2.at(j) - '0';
+                ansArr[i + j + 1] += x * y;
+            }
+        }
+        for (int i = m + n - 1; i > 0; i--) {
+            ansArr[i - 1] += ansArr[i] / 10;
+            ansArr[i] %= 10;
+        }
+        int index = ansArr[0] == 0 ? 1 : 0;
+        string ans;
+        while (index < m + n) {
+            ans.push_back(ansArr[index]);
+            index++;
+        }
+        for (auto &c: ans) {
+            c += '0';
+        }
+        return ans;
+    }
+};
+```
+
 ## 通配符匹配
+
 ### 动态规划
 #### 思路
 用 $dp[i][j]$ 表示字符串 $s$ 的前 $i$ 个字符和模式 $p$ 的前 $j$ 个字符是否能匹配。在进行状态转移时，我们可以考虑模式 $p$ 的第 $j$ 个字符 $p_j$ 与之对应的是字符串 $s$ 中的第 $i$ 个字符 $s_i$：
