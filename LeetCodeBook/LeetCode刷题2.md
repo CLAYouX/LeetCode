@@ -1101,10 +1101,10 @@ public:
 
 ## 简化路径
 
-Linux的目录层级是用**栈**实现的。
+Linux的目录层级是用 ==**栈**== 实现的。
 
-- 分割字符串之后根据每种情况进行判定
-- $.$ 和 $''$ 不用管，直接跳过
+- 分割字符串之后根据每种情况进行判定；
+- $.$ 和 空格 不用管，直接跳过；
 - $..$ 代表返回上一级，弹出栈顶元素（注意判空）
 - 其它情况直接入栈
 
@@ -1600,6 +1600,10 @@ public:
 
 ## 组合
 
+### 题目
+
+给定两个整数 $n$ 和 $k$，返回范围 $[1, n]$ 中所有可能的 $k$ 个数的组合。
+
 ### 递归(DFS)
 
 ``` c++
@@ -1696,6 +1700,10 @@ public:
 
 ## 子集
 
+### 题目
+
+给你一个整数数组 nums ，数组中的元素 **互不相同** 。返回该数组所有可能的子集（幂集）。
+
 ### 二进制
 
 记原序列中元素的总数为 $n$。原序列中的每个数字 $a_i$ 的状态可能有两种，即**在子集中**和**不在子集中**。我们用 $1$ 表示**在子集中**，$0$ 表示**不在子集中**，那么每一个子集可以对应一个长度为 $n$ 的 $0/1$ 序列，第 $i$ 位表示 $a_i$ 是否在子集中。例如，当 $n=3$, $a=\{5,2,9\}$ 时：
@@ -1734,6 +1742,87 @@ public:
     }
 };
 ```
+
+## 子集2
+
+### 题目
+
+给你一个整数数组 nums ，其中可能 **包含重复元素**，请你返回该数组所有可能的子集（幂集）。
+
+### 递归
+
+递归时，若发现没有选择上一个数，且当前数字与上一个数相同，则可以跳过当前生成的子集。
+
+``` c++
+class Solution {
+public:
+
+    void dfs(vector<vector<int>> &ans, vector<int> &tmp, vector<int> &nums, int p) {
+        if (p == nums.size()) {
+            ans.push_back(tmp);
+            return;
+        }
+
+        tmp.push_back(nums[p]);
+        dfs(ans, tmp, nums, p+1);
+        tmp.pop_back();
+        while(p+1 < nums.size() && nums[p+1] == nums[p])
+            ++p;
+        dfs(ans, tmp, nums, p+1);
+    }
+
+    vector<vector<int>> subsetsWithDup(vector<int>& nums) {
+        sort(nums.begin(), nums.end());
+
+        vector<int> tmp;
+        vector<vector<int>> ans;
+
+        dfs(ans, tmp, nums, 0);
+
+        return ans;
+    }
+};
+```
+
+### 迭代
+
+考虑数组 $[1,2,2]$，选择前两个数，或者第一、三个数，都会得到相同的子集。
+
+也就是说，对于当前选择的数 $x$，若前面有与其相同的数 $y$，且没有选择 $y$，此时包含 $x$ 的子集，必然会出现在包含 $y$ 的所有子集中。
+
+我们可以通过判断这种情况，来避免生成重复的子集。代码实现时，可以先将数组排序；迭代时，若发现没有选择上一个数，且当前数字与上一个数相同，则可以跳过当前生成的子集。
+
+``` c++
+class Solution {
+public:
+    vector<int> t;
+    vector<vector<int>> ans;
+
+    vector<vector<int>> subsetsWithDup(vector<int> &nums) {
+        sort(nums.begin(), nums.end());
+        int n = nums.size();
+        for (int mask = 0; mask < (1 << n); ++mask) {
+            t.clear();
+            bool flag = true;
+            for (int i = 0; i < n; ++i) {
+                if (mask & (1 << i)) {
+                    if (i > 0 && (mask >> (i - 1) & 1) == 0 && nums[i] == nums[i - 1]) {
+                        flag = false;
+                        break;
+                    }
+                    t.push_back(nums[i]);
+                }
+            }
+            if (flag) {
+                ans.push_back(t);
+            }
+        }
+        return ans;
+    }
+};
+```
+
+- 时间复杂度：$O(n\times2^n)$，其中 $n$ 是数组 $\textit{nums}$ 的长度。排序的时间复杂度为 $O(n \log n)$。最坏情况下 $\textit{nums}$中无重复元素，需要枚举其所有 $2^n$ 个子集，每个子集加入答案时需要拷贝一份，耗时 $O(n)$，一共需要 $O(n \times 2^n)+O(n)=O(n \times 2^n)$ 的时间来构造子集。
 
 ## 单词搜索
 
@@ -1789,6 +1878,31 @@ public:
             }
         }
         return false;
+    }
+};
+```
+
+## 删除排序数组中的重复项
+
+### 双指针
+
+``` c++
+class Solution {
+public:
+    int removeDuplicates(vector<int>& nums) {
+        int n = nums.size();
+        if (n == 0) {
+            return 0;
+        }
+        int fast = 1, slow = 1;
+        while (fast < n) {
+            if (nums[fast] != nums[fast - 1]) {
+                nums[slow] = nums[fast];
+                ++slow;
+            }
+            ++fast;
+        }
+        return slow;
     }
 };
 ```
@@ -2282,6 +2396,18 @@ public:
 
 ## 扰乱字符串
 
+### 题目
+
+使用下面描述的算法可以扰乱字符串 $s$ 得到字符串 $t $：
+
+1. 如果字符串的长度为 1 ，算法停止
+2. 如果字符串的长度 > 1 ，执行下述步骤：
+   - 在一个随机下标处将字符串分割成两个非空的子字符串。即，如果已知字符串 $s$ ，则可以将其分成两个子字符串 $x$ 和 $y$ ，且满足 $s = x + y$ 。
+   - 随机 决定是要「交换两个子字符串」还是要「保持这两个子字符串的顺序不变」。即，在执行这一步骤之后，$s$ 可能是 $s = x + y$ 或者 $s = y + x $。
+   - 在 $x$ 和 $y$ 这两个子字符串上继续从步骤 1 开始递归执行此算法。
+
+给你两个 长度相等 的字符串 $s1$ 和 $s2$，判断 $s2$ 是否是 $s1$ 的扰乱字符串。如果是，返回 $true $；否则，返回 $false$ 。
+
 ### 动态规划
 
 显然「扰乱字符串」的关系是具有**对称性**的，即如果 $s_1$ 是 $s_2$ 的扰乱字符串，那么 $s_2$ 也是 $s_1$  的扰乱字符串。为了叙述方便，我们称这种情况下，$s_1$ 和 $s_2$ 是**和谐**的。
@@ -2299,7 +2425,7 @@ public:
 
 <img src="https://assets.leetcode-cn.com/solution-static/87/1.png" width="800" height="400" >
 
- 这样一来，我们就把原本需要解决的问题划分成了两个本质相同，但规模更小的子问题，因此可以考虑使用动态规划解决。
+这样一来，我们就把原本需要解决的问题划分成了两个本质相同，但规模更小的子问题，因此可以考虑使用动态规划解决。
 
 设 $f(s_1, s_2)$ 表示 $s_1$ 和 $s_2$ 是否和谐，我们可以写出状态转移方程
 $$
@@ -2327,7 +2453,7 @@ $$
 
 2. 由于我们使用记忆化搜索，因此我们需要把 $s_1$ 和 $s_2$ 作为参数传入记忆化搜索使用的递归函数。这样一来，在递归传递参数的过程中，会使用到大量字符串的切片、拷贝等操作，使得时空复杂度不那么优。本题中，由于给定原始字符串的长度不超过 $30$，因此不会产生太大的影响，但我们还是要尽可能对代码进行优化。
 
-   一种通用的优化方法是，我们将状态变更为 $f(i_1, i_2, \textit{length})$，表示第一个字符串是原始字符串从第 $i_1$ 个字符开始，长度为 \textit{length}length 的子串，第二个字符串是原始字符串从第 $i_2$ 个字符开始，长度为 $\textit{length}$ 的子串。可以发现，我们只是改变了表达 $s_1$ 和 $s_2$ 的方式，但此时我们只需要在递归时传递三个整数类型的变量，省去了字符串的操作；
+   一种通用的优化方法是，我们将状态变更为 $f(i_1, i_2, \textit{length})$，表示第一个字符串是原始字符串从第 $i_1$ 个字符开始，长度为 $\textit{length}$ 的子串，第二个字符串是原始字符串从第 $i_2$ 个字符开始，长度为 $\textit{length}$ 的子串。可以发现，我们只是改变了表达 $s_1$ 和 $s_2$ 的方式，但此时我们只需要在递归时传递三个整数类型的变量，省去了字符串的操作；
 
 ``` c++
 class Solution {
@@ -2492,83 +2618,6 @@ public:
     }
 };
 ```
-
-## 子集2
-
-### 递归
-
-递归时，若发现没有选择上一个数，且当前数字与上一个数相同，则可以跳过当前生成的子集。
-
-``` c++
-class Solution {
-public:
-
-    void dfs(vector<vector<int>> &ans, vector<int> &tmp, vector<int> &nums, int p) {
-        if (p == nums.size()) {
-            ans.push_back(tmp);
-            return;
-        }
-
-        tmp.push_back(nums[p]);
-        dfs(ans, tmp, nums, p+1);
-        tmp.pop_back();
-        while(p+1 < nums.size() && nums[p+1] == nums[p])
-            ++p;
-        dfs(ans, tmp, nums, p+1);
-    }
-
-    vector<vector<int>> subsetsWithDup(vector<int>& nums) {
-        sort(nums.begin(), nums.end());
-
-        vector<int> tmp;
-        vector<vector<int>> ans;
-
-        dfs(ans, tmp, nums, 0);
-
-        return ans;
-    }
-};
-```
-
-### 迭代
-
-考虑数组 $[1,2,2]$，选择前两个数，或者第一、三个数，都会得到相同的子集。
-
-也就是说，对于当前选择的数 $x$，若前面有与其相同的数 $y$，且没有选择 $y$，此时包含 $x$ 的子集，必然会出现在包含 $y$ 的所有子集中。
-
-我们可以通过判断这种情况，来避免生成重复的子集。代码实现时，可以先将数组排序；迭代时，若发现没有选择上一个数，且当前数字与上一个数相同，则可以跳过当前生成的子集。
-
-``` c++
-class Solution {
-public:
-    vector<int> t;
-    vector<vector<int>> ans;
-
-    vector<vector<int>> subsetsWithDup(vector<int> &nums) {
-        sort(nums.begin(), nums.end());
-        int n = nums.size();
-        for (int mask = 0; mask < (1 << n); ++mask) {
-            t.clear();
-            bool flag = true;
-            for (int i = 0; i < n; ++i) {
-                if (mask & (1 << i)) {
-                    if (i > 0 && (mask >> (i - 1) & 1) == 0 && nums[i] == nums[i - 1]) {
-                        flag = false;
-                        break;
-                    }
-                    t.push_back(nums[i]);
-                }
-            }
-            if (flag) {
-                ans.push_back(t);
-            }
-        }
-        return ans;
-    }
-};
-```
-
-- 时间复杂度：$O(n\times2^n)$，其中 $n$ 是数组 $\textit{nums}$ 的长度。排序的时间复杂度为 $O(n \log n)$。最坏情况下 $\textit{nums}$中无重复元素，需要枚举其所有 $2^n$ 个子集，每个子集加入答案时需要拷贝一份，耗时 $O(n)$，一共需要 $O(n \times 2^n)+O(n)=O(n \times 2^n)$ 的时间来构造子集。
 
 ## 解码方法
 
@@ -3127,7 +3176,7 @@ public:
 3. 如果有一个，我们记为 $i$，那么对应被错误交换的节点即为 $a_i$ 对应的节点和 $a_{i+1}$ 对应的节点，我们分别记为 $x$ 和 $y$。
 4. 交换 $x$ 和 $y$ 两个节点即可。
 
-实现中，开辟一个新数组 \textit{nums}nums 来记录中序遍历得到的值序列，然后线性遍历找到两个位置 ii 和 jj，并重新遍历原二叉搜索树修改对应节点的值完成修复。
+实现中，开辟一个新数组 $\textit{nums}$ 来记录中序遍历得到的值序列，然后线性遍历找到两个位置 $i$ 和 $j$，并重新遍历原二叉搜索树修改对应节点的值完成修复。
 
 ``` c++
 class Solution {
